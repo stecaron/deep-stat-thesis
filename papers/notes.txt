@@ -1,0 +1,76 @@
+Doersch 2016: Tutorial on Variational Autoencoders
+
+Tutoriel sur l'intuition derriere les VAA (pas une demo scientifique)
+VAA sont quand meme différents des autres entoecodeurs
+
+Apprendre des modèles où est-ce qu'on peut apprendre une distribution P inconnue a souvent eu 3 majors drawbacks:
+	1. Hypothèses trop rigide sur la structure des données
+	2. Des approximations pas suffisamment précises
+	3. Basés sur des nombreux calculs comme MCMC	
+
+Est-ce que c'est possible d'utiliser des VAA avec d'autres types de distribution que Gaussian? Par exemple, dans un cas de données débalancées est-ce qu'on pourrait supposer que la distribution a posteriori de la représentation X serait de type gamma, beta, ou autre?
+
+La représentation z permet de sample des données selon une distribution Gaussian et le réseau apprend quelle fonctions ou quels corrélations appliquer entres les composantes z pour bien réapprendre la distribution de base.
+
+L'article decrit assez bien en details les maths derriere l'optimisation des VAA
+
+
+-----------
+
+Zong & Song 2018: DEEP AUTOENCODING GAUSSIAN MIXTURE MODEL FOR UNSUPERVISED ANOMALY DETECTION
+
+La compression et l'estimation de densité sont appris en meme temps
+
+
+-----------
+
+Tutoriels sur les VAA:
+https://jaan.io/what-is-variational-autoencoder-vae-tutorial/
+
+	Loss divided in 2 parts: -log likelihood (reconstruction) + regularizer 
+
+	Term de regularization sert: garde chaque composante de z (representation apprise) suffisamment différent les uns des autres
+
+	L'article explique bien les maths derriere l'optimisation des VAA.
+
+	In VAA we don't optimize the loss function, we optimize the ELBO, which is equivalent to optimizing the loss (and we can optimize the loss).
+
+	Encoder: Fonction a postériori des variables latentes z. C'est la composante d'inférence ce qui encode la représentation x dans une représentation 	z.
+	Décodeur: Fonction de likelihood des données x sachant une représentation latente z. C'est la composante générative qui reconstruit l'entrée x à 	partir de z.
+
+
+https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
+
+	La partie encodeur d'un auto-encodeur est très similaire a un CNN qui a partir d'une image a haute-dimension, produit une représentation à petite 	dimension qui est utile pour la classification. Dans le cas d'un encodeur, c'est le même principe mais on veut que la représentation soit utile 	pour la reconstruction des données.
+
+	Les auto-encodeurs classiques peuvent être limités pour la génération. Peuvent avoir des discontinuités et ne pas savoir "dealer avec un nouvel 	input". 
+
+	Différence des VAA avec les autoencodeurs classique: leur espace latente est continu ce qui permet un meilleure sampling/interpolation de cet 		espace latente.
+
+	Les VAA encode les paramètres d'une distribution normales (2 vecteurs mu et sigma) .. pour chaque neurone. De la que vient le VARIATIONAL ! 
+
+
+http://ufldl.stanford.edu/tutorial/unsupervised/Autoencoders/
+
+	Parle un peu des autoencodeurs "basiques". Ça parle aussi des "sparse autoencodeurs".
+	Kullback-Leibler: Calcule la différence entre 2 distributions (souvent inclut dans les AE)
+
+
+
+
+
+--------------
+
+Andrew Ng (2011): Sparse auto encoders
+
+Solide introduction sur l'apprentissage non-supervisée.
+Il propose une méthode pour valider que les dérivés ont été bien estimées (une manière de valider une implémentation de backprop)
+
+
+
+------------- 
+
+Video tutorial: https://www.youtube.com/watch?v=nTt_ajul8NY
+
+Latent space clustering with auto-encoders 
+Contractive AE -> similar to denoting AE
