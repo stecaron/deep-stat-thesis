@@ -1,0 +1,140 @@
+---
+title: "Litterature review - Autoencoders"
+subtitle: "Département de mathématiques et de statistique - Université Laval"
+author: "Stéphane Caron"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+header-includes:
+- \usepackage{float} #use the 'float' package
+- \floatplacement{figure}{H} #make every figure with caption = h
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+bibliography: bibliography.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.pos= "h")
+```
+
+# Introduction to autoencoders
+
+An autoencoder is a neural network technique that aims to learn an input and output it back as its output [@Goodfellow-et-al-2016]. To achieve this objective, the autoencoder has 2 components: an **encoder** and a **decoder**. The encoder receive an input $x$ and and converts it to a hidden representation $z$. The decoder receive a representation $z$ and decode it back to retrieve as much as possible the input $x$. Historically, autoencoders were known as a dimensionnalty reduction method, but it has now more applications by learning latent variables useful in generative modelling.
+
+## Architecture
+
+As explained in the introduction, autoencoders are divided in two parts: the encoder and the decoder. The encoder compress the information into a given representation and the decoder decompress it back to its original format (see figure 1).
+
+```{r ex1, fig.cap="Autoencoders structure example.", out.width = '60%', fig.align='center', fig.pos=""}
+knitr::include_graphics("images/autoencoder-structure.png")
+```
+
+The hidden representation (or latent representation) is often smaller because of the structure of the layers between the input and that representation. Autoencoders that have a smaller hidden representation than its inputs are called *undercomplete*. In those cases, the constraint on $z$ force the network to learn the more important features. It could applied to feedforward networks or a convolutional networks. We are typically interested in that hidden representation, in comparison to the output of the decoder who may sound useless.
+
+
+## Optimization
+
+Autoencoders intuition is to build back the input $x$ by passing through the 2 components (encoder and decoder). As such, this kind of model do not need any target, so we say it is an unsupervised method. The training of the parameters is mainly done by minimizing the reconstruction error. The loss is given by:
+
+$$
+L(x, p_\phi(q_\theta(x)))
+$$
+
+where $q(x, \theta)$ is the encoder and $p(z,\phi)$ is the decoder function. The loss generally includes another component $\Omega(x)$ that acts as a regularizer. The regularization is often essential to prevent the network to "copy/paste" examples of the training set. Those situations can occur even more when the hidden representation is equal or greater than the inputs (**overcomplete**). The minimization of this loss function is done by gradient descent. For instance, the encoder parameters are gradually updated by:
+
+$$
+\theta \leftarrow \theta-\epsilon*\frac{\partial L}{\partial\theta}
+$$
+where $\epsilon$ is the learning weight.
+
+# Types of autoencoders
+
+In the first sections, I introduced the general idea behind the autoencoders. However, there are different kinds of autoencoders and each has strengths in different areas. They differ in their architecture and optimization process, but at the end they all consist in unsupervised methods that learn latent structure of the data.
+
+## Sparse autoencoders
+
+One way of learning useful representations using autoencoder is to impose a constraint of **sparsity** in the hidden representation [@ranzato-2007]. A sparse autoencoder is basically an autoencoder who has a sparsity penalty in the loss criterion:
+
+$$
+L(x, p_\phi(q_\theta(x))) + \Omega(z)
+$$
+
+where $z$ is the hidden representation (or the output of the encoder). That sparsity penalty will pull some neurons output values towards zero in the hidden layer, making them "inactive" [@Ng-2011]. That regularization will prevent overfitting and prevent the network to learn by heart every input.
+
+Sparse autoencoders are generally used to learn features for another task (e.g classification). In that sense, it can accomplish the feature engineering of a task by learning useful features.
+
+## Denoising autoencoders
+
+Another kind of autoencoder that has been widely used are the denoising autocoders [@Vincent-2008]. These autoencoders are really close to "vanilla autoencoders" except they receive a corrupted input and afterwards are trained to produce a uncorrupted output.
+
+The denoising autoencoders will then minimize:
+
+$$
+L(x, p_\phi(q_\theta(\tilde{x}))) 
+$$
+where $\tilde{x}$ is a copy of $x$ that has been corrupted.
+
+There are different ways of corrupting the input. One way could be to choose a given proportion $\nu$ of inputs to randomly "destruct" by assigning a 0-value while keeping the other untouched. That approach is called *masking noise*. We could also corrupt the data by adding *Gaussian noise* or setting randomly a proportion of the inputs to maximum or minimum value (*salt-and-pepper noise)*. The intuition behind this approach is again to prevent the algorithm from learning the useless identity function.
+
+## Contractive autoencoders
+
+The contractive autoencoders [@Rifai-2011] are often associated with the denoising autoencoders. The loss criterion includes a regularizer penalty in the form of:
+
+$$
+\Omega = \lambda \Bigg| \Bigg| \frac{\partial q_\theta(x)}{\partial x}\Bigg| \Bigg|^{2}_F{}
+$$
+
+Denoising autoencoders are build to make the reconstruction function resist small but finite-size perturbations of the inputs, while contractive autoencoders make the feature extraction function resist small changes in the inputs.
+
+## Variational autoencoders
+
+The variational autoencoders [@kingma2013autoencoding] have a slightly different approach than other kind of autoencoders and are particularly useful in generative modelling and reinforcement learning. Again, these autoencoders have a loss criterion in the form of:
+
+$$
+L = \text{reconstruction error} + \text{regularizer}
+$$
+
+However, instead of encoding a hidden representation of size $n$, it outputs two vectors of size $n$: a vector of means $\boldsymbol \mu$ and a vector of standard deviation $\boldsymbol \sigma$. Those vectors allows to sample from Gaussian distributions, which makes the variational autoencoders unique property of having a latent space that is **continuous** [@toward-VAE]. This is the main difference with *vanilla autoencoders*. That property is actually very useful in generative modelling. The figure 2 illustrates the basic structure of a variational autoencoder.
+
+```{r vae, fig.cap="Variational autoencoder structure. Instead of learning a representation directly, it learns the parameters of Gaussian distributions and the hidden representation is given by sampling from those distributions.", out.width = '60%', fig.align='center', fig.pos=""}
+knitr::include_graphics("images/vae-structure.png")
+```
+
+The explicit variational autoencoder loss criterion is given by :
+
+$$
+L(x, p_\phi(q_\theta(x))) + D_{KL}(q_\theta(z|x) || p_\phi(x|z))
+$$
+
+where $D_{KL}$ is a regularizer called the Kullback-Leibler divergence. His goal is to ensure that the two distributions $p$ and $q$ are somewhat similar.
+
+# Known applications of autoencoders
+
+## Dimensionnality reduction
+
+One of the first application for which the autoencoders were used was to **reduce the dimensionnality**. For example, [@HintonSalakhutdinov2006b] showed that a deep autoencoder could learn to represent data in a smaller representation better than the widely used PCA method (see figure 3).
+
+```{r pca, fig.cap="Comparison between the learned representation of a PCA and a deep autoencoder.", out.width = '100%', fig.align='center', fig.pos=""}
+knitr::include_graphics("images/pca-vs-ae.png")
+```
+
+## Information retrieval
+
+Another application of autoencoders is to related with **information retrieval**. This is the task of finding an entry similar to another entry in a database. It can be done by dimensionnality reduction, and even binarization of an input, which is called semantic hashing. This has been applied to both text [@Salakhutdinov-2009] and images [@Weiss2008SpectralH].
+
+## Anomaly detection
+
+A task that is often related with unsupervised methods is the idea of finding outliers or anomaly in a dataset. In fact, that's normally an information we don't have and that we can't train on it. Thus, we generally need unsupervised way of discovering those anomalies.
+
+For instance, [@zhou-2017] used denoising autoencoders to build an unsupervised anomaly detection algorithm. They applied their methodology, that includes a anomaly regularizing penalty, on MNIST dataset to find anomalies in hand written digits.
+
+Another interesting example of anomaly detection using autoencoders was made by [@zong2018deep]. They used autoencoders to build a small representation and use that representation as well as the reconstruction error to train a Gaussian Mixture Model (GMM). The figure 4 shows the overview of the compression (deep autoencoder) and estimation (GMM) tasks.
+
+```{r DAGMM, fig.cap="Overview of the Deep Autoencoder and Gaussian Mixture Model.", out.width = '100%', fig.align='center', fig.pos=""}
+knitr::include_graphics("images/dagmm.png")
+```
+
+\newpage
+
+# References
