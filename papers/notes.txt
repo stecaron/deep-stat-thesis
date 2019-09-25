@@ -74,3 +74,9 @@ Video tutorial: https://www.youtube.com/watch?v=nTt_ajul8NY
 
 Latent space clustering with auto-encoders 
 Contractive AE -> similar to denoting AE
+
+-------------
+
+Dataset:
+
+http://odds.cs.stonybrook.edu/
