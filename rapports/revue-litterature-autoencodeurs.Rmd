@@ -43,10 +43,58 @@ $$
 
 where $q(x, \theta)$ is the encoder and $p(z,\phi)$ is the decoder function. The loss generally includes another component $\Omega(x)$ that acts as a regularizer (we'll see in the next sections). The regularization is often essential to prevent the network to "copy/paste" examples of the training set. Those situations can occur even more when the hidden representation is equal or greater than the inputs (*overcomplete*). The minimization of this loss function is done by gradient descent. For instance, the encoder parameters are gradually updated by:
 
-$$
+\begin{equation} \label{optim}
 \theta \leftarrow \theta-\epsilon*\frac{\partial L}{\partial\theta}
-$$
+\end{equation}
+
 where $\epsilon$ is a learning weight that aims to control the size of the learning steps.
+
+## Example
+
+Let's illustrate the high-level concepts presented in the last 2 sections with an overly simplistic example. We have a input $X$ with $p=2$ features and 10 observations. We want to encode those 2 features in one single features using an basic autoencoder with 1 hidden layer. In summary, our autoencoder has 3 layers (input layer, hidden layer and output layer). We also choose a sigmoid activation function for our hidden layer and a linear activation function for our ouput layer (those choices are arbitrary).
+
+```{r ex2, fig.cap="Autoencoders structure example.", out.width = '60%', fig.align='center', fig.pos=""}
+knitr::include_graphics("images/example-toy-ae.png")
+```
+
+The encoder function (that transforms $x$ to $z$) could be expressed that way:
+
+$$
+q_{\theta}(x)=h\big(x_1*w_{1,1} + x_2*w_{1,2} + b_1\big)
+$$
+
+where $h(x)$ is a sigmoid function in the form of $h(x)=\frac{1}{1+e^{-x}}$. The parameters $\theta$ that need to be optimized are $w_{1,1}, w_{1,2}$ and $b_1$. We can also use the matrix notation :
+
+$$
+q_{\theta}(X)=h\big(X*\boldsymbol w_1 + b_1\big)
+$$
+
+In the same fashion, the decoder could be expressed (for the output $\hat{x_i}$) as:
+
+$$
+p_{\phi}(z)=f\big(z*w_{2,i} + b_2\big)
+$$
+
+where $f(x)$ is a linear function in the form of $f(x)=x$. The parameters $\phi$ that need to be optimized are $w_{2,1}, w_{2,2}$ and $b_2$. We can also use the matrix notation (which is more convinient in that case):
+
+$$
+p_{\phi}(Z)=h\big(Z*\boldsymbol w_2 + b_2\big)=\hat{X}
+$$
+
+To optimize those parameters $\theta$ and $\phi$, we need to define a loss function (see equation \@ref(perte1)). Let's say we want to minimize the reconstruction error only, we can define our loss as:
+
+\begin{equation} \label{perte1}
+\begin{split}
+L(x,\hat{x}) & = L\big(x, p_\phi\{q_\theta(x)\}\big) \\
+& = \frac{1}{2} \sum_{i=1}^{n} \big(x^{(i)}-p_\phi\{q_\theta(x^{(i)}\}\big)^2 \\
+& = \frac{1}{2} \sum_{i=1}^{n} \sum_{j=1}^{p} \big(x_{j}^{(i)}-p_\phi\{q_\theta(x_{j}^{(i)})\}\big)^2
+\end{split}
+\end{equation}
+
+where $i$ stands for the $i$-th observation.
+
+Once we have a loss function, we can optimize the parameters of the encoder/decoder using the *chain rule* of derivatives for each layer (see equation \@ref(optim)).
+
 
 # Types of autoencoders
 
@@ -68,7 +116,7 @@ $$
 L(x, p_\phi\{q_\theta(x)\}) + \Omega(z)
 $$
 
-where $z$ is the hidden representation (or the output of the encoder). That sparsity penalty will pull some neurons output values towards zero in the hidden layer, making them "inactive" [@Ng-2011]. That regularization will prevent overfitting and prevent the network to learn by heart every input.
+where $z$ is the hidden representation (or the output of the encoder). That sparsity penalty ($\Omega(z)$) will pull some neurons output values towards zero in the hidden layer, making them "inactive" [@Ng-2011]. That regularization will prevent overfitting and prevent the network to learn by heart every input.
 
 Sparse autoencoders are generally used to learn features for another task (e.g classification). In that sense, it can accomplish the feature engineering of a task by learning useful features.
 
