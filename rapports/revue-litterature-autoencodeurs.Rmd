@@ -221,9 +221,15 @@ Autoencoders and density estimation are often used togheter in anomaly detection
 
 ## Clustering
 
-A well known task in the unsupervised world is the task of clustering. [@DilokthanakulMG16] used varitional autoencoders and introduced a Gaussian Mixture Model (GMM) as a prior distribution with the goal of performing clustering.
+A well known task in the unsupervised world is the task of clustering. [@DilokthanakulMG16] used varitional autoencoders and introduced a Gaussian Mixture Model (GMM) as a prior distribution with the goal of performing clustering. They also discuss the problem of over-regularisation than varitional autoencoders can have and how to tackle this problem.
 
-[@Xie-2016] also proposed a deep embedding approach that simultaneously learns feature reprensentations and cluster assignements. [@Xi-2018] also used autoencoders to make clustering on a complex space where the non-linearity of neural networks allowed them to learn complex subspaces.
+[@Xie-2016] also proposed a deep embedding approach that simultaneously learns feature reprensentations and cluster assignements. Their methodology consists of first initializing a denoising autoencoder. Once that first model is trained, they are able to represent the data is a smaller representation (they drop the decoder). They also initialize clusters assignements by using this representation and the $k$-means algorithm. Then, they simultanuasly train the $k$ cluster centers in the feature space $Z$ and the parameters $\theta$ that maps data points to $Z$. The figure \@ref(fig:xie2016) illustrates the network structure where we can see the autoencoder at the top (the learned encoder in gray dashed rectangle), and then the *deep embedded clustering* network at the bottom.
+
+```{r xie2016, fig.cap="Deep Embedded Clustering network strcuture", out.width = '100%', fig.align='center', fig.pos=""}
+knitr::include_graphics("images/xie-2016.png")
+```
+
+[@Xi-2018] also used autoencoders to make clustering on a complex space where the non-linearity of neural networks allowed them to learn complex subspaces.
 
 Multivariate density estimation is widely performed for fundamental unsupervised tasks such a clustering. [@ijcai2018-374] used variational autoencoders and applied a Student-$t$ distribution instead of a Gaussian distribution for the decoder.
 
