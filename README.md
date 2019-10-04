@@ -1,32 +1,33 @@
-This repo regroup all the work related with the thesis I made with regard to my Master Degree at the *Département de mathématiques et de statistique de l'Université Laval* in Quebec City.
+This repo contains all the work related to my master's thesis at the *Département de mathématiques et de statistique de l'Université Laval* in Quebec City.
 
-# Digital behaviours clustering
+# Clustering digital behaviours
 
 ## Project context
 
-We live in a world where the relationships between customers and companies are increasly shifting to digital interactions. Customers are expecting more effectiveness and personalization in the platforms provided to them and companies are generally willing to develop such technologies to improve efficiency on their side as well. However, those kind of interactions are often *colder* and less adaptable to certain situations which can sometimes decrease the customer experience if something *abnormal* happens. Furthermore, those solutions can potentially open the door to more fraudulent or malicious behaviours as less and less humans are involved in the process. A lot of financial and insurance companies are often facing this tradeoff between **straight-through** processes that improve overall efficiency of most *normal* cases and **provides human assistance/review** at the right time for customers struggling or trying to take advantage of the process.
+We live in a world where the relationships between customers and companies are increasly shifting to digital interactions. Customers are expecting more user-friendly and personalized platforms and companies are generally willing to develop such technologies in order to improve efficiency on their side as well. However, digital interactions tend to be *colder* and less adaptable, which can lower the quality of the customer's experience when something *abnormal* happens. Furthermore, those solutions sometimes open the door to fraudulent or malicious activities, as less and less humans are involved in monitoring the process. The many financial and insurance companies facing this threat need a tradeoff procedure involving **straight-through processes** that improve the overall efficiency of most *normal* cases and **human assistance/review** for customers struggling to take full advantage of the way the process is designed.
 
 ## Project objectives
 
-In this project, we want to tackle that problematic by learning digital behaviours and grouping users by their way of filling a web/application based form. By creating those clusters of users, we think we can acquire part of the knowledge humans were collecting before by having phone or in-person conversations. Our hypothesis (and our objective in a way) is that some behaviours like the following could be learned: hesitation, misunderstanding, confidence, pre-craft idea, dishonesty, etc. To achieve that, we want to apply variational autoencoders (VAE), an unsupervised learning method, to learn complex patterns that would allow us to group observations based on a learned hidden representation. We want to apply this algorithm to web analytics data collected from a online form provided by an insurance company to insureds to declare a loss (first notice of loss or *FNOL*). The data is essentially tags collected by the website/application :
+We want to tackle the problematic by learning digital behaviours to group users with respect to the way they fill the web/application-based form. We think a learning algorithm can internalize part of the knowledge traditionally acquired, either consciously or not, by experienced human assistants during their many conversations over the phone and/or in-person with clients. Our hypothesis is that some behaviours like the following can be learned: hesitation, misunderstanding, confidence, pre-craft idea, dishonesty, etc. Accordingly, our objective is to represent sets of interactions with the web-based form in a low-dimensional subspace, to then cluster these representations into a discrete set of *typical* behaviours. To achieve the first part of the objective, we intend to use autoencoders (AEs), an unsupervised learning technique designed to do just that. Web analytics data provided by an insurance company will be used to train the algorithm. The data was collected during the filling of an online form by the companies' clients declaring a loss (first notice of loss or *FNOL*). Essentially, the data consist of the following collected tags :
 
 - session's duration
-- the time to answer each questions
+- time required to answer each questions
 - answers that have been edited
 - answers content
 - device used
 - time of the day
 - location
 
-We hope that an unsupervised method such as VAE could learn useful caracteristics that differentiate users in their digital behaviours and ultimately capture some "body langage" that was traditionnaly measured by humans.
+We hope that an unsupervised method such as AE can learn useful caracteristics that differentiate users in their digital behaviours and ultimately capture some "body langage" that was traditionnaly measured by humans.
 
 ## Academic added-value
 
-The main academic added-value of this paper is to study and compare clustering methods based on neural networks (specifically variational autoencoders) with well known statistical methods used for that purposes. We think that VAE can be better in a context of high-dimensionnal data and also capture non-linear relationship between observations.
+The main academic added-value of this paper is the study and comparison of clustering methods based on neural networks (specifically variational autoencoders) with well known statistical methods used for that purposes. We think that a VAE can perform better than conventional statistical methods in the context of high-dimensionnal data, among oter things because it can capture non-linear relationships between variables.
 
 # Collaborators
 
-- Stéphane Caron (myself, M.Sc student)
+- Stéphane Caron (Myself, M.Sc student)
 - [Thierry Duchesne](https://www.mat.ulaval.ca/departement-et-professeurs/direction-personnel-et-etudiants/professeurs/fiche-de-professeur/show/duchesne-thierry/) (Thesis Director, Ph.D., P.Stat.)
-- François-Michel de Rainville (Thesis Co-director, Ph.D. Computer Engineering)
-- Intact Insurance (collaborating company)
+- [François-Michel de Rainville](https://www.researchgate.net/profile/Francois-Michel_De_Rainville) (Thesis Co-director, Ph.D. Computer Engineering)
+- [Intact Insurance](https://www.intactlab.ca/) (Collaborating company, Intact Lab)
+- [Samuel Perreault](https://www.researchgate.net/profile/Samuel_Perreault) (Collaborator)
