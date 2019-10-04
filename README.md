@@ -1,24 +1,24 @@
-This repo regroup all the work related with the thesis I made with regard to my Master Degree at the *Département de mathématiques et de statistique de l'Université Laval* in Quebec City.
+This repo regroups all the work related my master's thesis at the *Département de mathématiques et de statistique de l'Université Laval* in Quebec City.
 
-# Digital behaviours clustering
+# Clustering digital behaviours
 
 ## Project context
 
-We live in a world where the relationships between customers and companies are increasly shifting to digital interactions. Customers are expecting more effectiveness and personalization in the platforms provided to them and companies are generally willing to develop such technologies to improve efficiency on their side as well. However, those kind of interactions are often *colder* and less adaptable to certain situations which can sometimes decrease the customer experience if something *abnormal* happens. Furthermore, those solutions can potentially open the door to more fraudulent or malicious behaviours as less and less humans are involved in the process. A lot of financial and insurance companies are often facing this tradeoff between **straight-through** processes that improve overall efficiency of most *normal* cases and **provides human assistance/review** at the right time for customers struggling or trying to take advantage of the process.
+We live in a world where the relationships between customers and companies are increasly shifting to digital interactions. Customers are expecting more user-friendly and personalized platforms and companies are generally willing to develop such technologies in order to improve efficiency on their side as well. However, those kinds of interactions are often *colder* and less adaptable to certain situations, which can lead to a customer's experience of lower quality when something *abnormal* happens. Furthermore, those solutions sometimes open the door to fraudulent or malicious activities, as less and less humans are involved in monitoring the process. The many financial and insurance companies facing this threat need a tradeoff procedure involving **straight-through processes** that improve the overall efficiency of most *normal* cases and **human assistance/review** for customers struggling to take full advantage of the way the process is designed.
 
 ## Project objectives
 
-In this project, we want to tackle that problematic by learning digital behaviours and grouping users by their way of filling a web/application based form. By creating those clusters of users, we think we can acquire part of the knowledge humans were collecting before by having phone or in-person conversations. Our hypothesis (and our objective in a way) is that some behaviours like the following could be learned: hesitation, misunderstanding, confidence, pre-craft idea, dishonesty, etc. To achieve that, we want to apply variational autoencoders (VAE), an unsupervised learning method, to learn complex patterns that would allow us to group observations based on a learned hidden representation. We want to apply this algorithm to web analytics data collected from a online form provided by an insurance company to insureds to declare a loss (first notice of loss or *FNOL*). The data is essentially tags collected by the website/application :
+We want to tackle the problematic by learning digital behaviours in order to group users with respect to the way they fill the web/application-based form. We think the obtained clusters can help us acquire part of the knowledge traditionally acquired, either consciously or not, by experienced human assistants over the phone or during in-person conversations. Our hypothesis is that some behaviours like the following could be learned: hesitation, misunderstanding, confidence, pre-craft idea, dishonesty, etc. Accordingly, our objective is to represent such complex interactions with the web-based form in a lower-dimensional manifold. In particular, we wish to use a variational autoencoder (VAE), which is an unsupervised learning technique designed to do just that. This should ultimately allow us to group observations into a discrete set of *typical* behaviours. We wish to train our algorithm using web analytics data provided by an insurance company. The data was collected during the filling of an online form by the companies' clients in the event of a loss, in other words the declaration of a loss (first notice of loss or *FNOL*). Essentially, the data consist of the following collected tags :
 
 - session's duration
-- the time to answer each questions
+- time required to answer each questions
 - answers that have been edited
 - answers content
 - device used
 - time of the day
 - location
 
-We hope that an unsupervised method such as VAE could learn useful caracteristics that differentiate users in their digital behaviours and ultimately capture some "body langage" that was traditionnaly measured by humans.
+We hope that an unsupervised method such as VAE can learn useful caracteristics that differentiate users in their digital behaviours and ultimately capture some "body langage" that was traditionnaly measured by humans.
 
 ## Academic added-value
 
