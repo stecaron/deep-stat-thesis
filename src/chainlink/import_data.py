@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 dt = pandas.read_csv('src/chainlink/chainlink.csv')
 
 
-def plot_chainlink(dt, labels, show=False, animate=False):
+def plot_chainlink(dt, labels, show=False, animate=False, name='cluster'):
 
     dt["group"] = labels
     groups = dt["group"].unique().tolist()
@@ -37,5 +37,9 @@ def plot_chainlink(dt, labels, show=False, animate=False):
             ax.legend()
             ax.view_init(30,angle)
 
-            filename='test/autoencoder'+str(angle)+'.png'
+            filename=f"rapports/graphs/{name}-{str(angle)}.png"
             plt.savefig(filename, dpi=96)
+        
+        # Command to transform PNG files to gif
+        # convert -delay 10 *.png filename.gif
+

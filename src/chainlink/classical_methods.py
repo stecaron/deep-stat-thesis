@@ -9,16 +9,16 @@ from src.chainlink.import_data import plot_chainlink
 X = numpy.array(dt[["x", "y", "z"]])
 
 # Real data
-plot_chainlink(dt[["x", "y", "z"]], dt["class"], show=True)
+plot_chainlink(dt[["x", "y", "z"]], dt["class"], show=True, animate=True, name='real')
 
 # K-Means method
 kmeans = KMeans(n_clusters = 2, random_state=0).fit(X)
-plot_chainlink(dt[["x", "y", "z"]], kmeans.labels_, show=True)
+plot_chainlink(dt[["x", "y", "z"]], kmeans.labels_, show=True, animate=True, name='kmeans')
 
 # Hierarchical Ward
 hclust_ward = AgglomerativeClustering(n_clusters=2, linkage="ward").fit(X)
-plot_chainlink(dt[["x", "y", "z"]], hclust_ward.labels_, show=True)
+plot_chainlink(dt[["x", "y", "z"]], hclust_ward.labels_, show=True, animate=True, name='hclust')
 
 # Spectral clustering
 spectral = SpectralClustering(n_clusters=2).fit(X)
-plot_chainlink(dt[["x", "y", "z"]], spectral.labels_, show=True)
+plot_chainlink(dt[["x", "y", "z"]], spectral.labels_, show=True, animate=True, name='spectral')

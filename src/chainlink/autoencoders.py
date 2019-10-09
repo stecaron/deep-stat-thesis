@@ -69,4 +69,4 @@ train(SimpleAE, train_loader, optimizer=optimizer, loss_function=loss_function, 
 embeddings = predict(SimpleAE, X).detach().numpy()
 svd_embeddings = TruncatedSVD(3).fit_transform(embeddings)
 svd_spectral = SpectralClustering(n_clusters=2).fit(svd_embeddings)
-plot_chainlink(dt[["x", "y", "z"]], svd_spectral.labels_, show=True, animate=True)
+plot_chainlink(dt[["x", "y", "z"]], svd_spectral.labels_, show=True, animate=True, name='autoencoder')
