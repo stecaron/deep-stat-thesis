@@ -2,3 +2,5 @@ sklearn
 numpy
 matplotlib
 pandas
+poutyne
+torch
