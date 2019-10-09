@@ -69,29 +69,35 @@ $$
 q_{\theta}(X)=h\big(X*\boldsymbol w_1 + b_1\big)
 $$
 
-In the same fashion, the decoder could be expressed (for the output $\hat{x_i}$) as:
+In the same fashion, the decoder could be expressed as:
 
-$$
-p_{\phi}(z)=f\big(z*w_{2,i} + b_2\big)
-$$
+\begin{align*}
+  p_{\phi}(Z)=
+  \begin{cases}
+    p_{\phi}^1(z) = f(z*w_{2,1}+b_2) \\
+    p_{\phi}^2(z) = f(z*w_{2,2}+b_2)
+  \end{cases}
+\end{align*}
 
 where $f(x)$ is a linear function in the form of $f(x)=x$. The parameters $\phi$ that need to be optimized are $w_{2,1}, w_{2,2}$ and $b_2$. We can also use the matrix notation (which is more convinient in that case):
 
-$$
-p_{\phi}(Z)=h\big(Z*\boldsymbol w_2 + b_2\big)=\hat{X}
-$$
+\begin{gather*}
+  p_{\phi}(Z)=h\big(Z*\boldsymbol w_2 + b_2\big)=\hat{X} \\
+  p_{\phi}: \rm I\!R \rightarrow \rm I\!R^2
+\end{gather*}
+
 
 To optimize those parameters $\theta$ and $\phi$, we need to define a loss function (see equation \@ref(perte1)). Let's say we want to minimize the reconstruction error only, we can define our loss as:
 
 \begin{equation} \label{perte1}
 \begin{split}
 L(x,\hat{x}) & = L\big(x, p_\phi\{q_\theta(x)\}\big) \\
-& = \frac{1}{2} \sum_{i=1}^{n} \big(x^{(i)}-p_\phi\{q_\theta(x^{(i)}\}\big)^2 \\
-& = \frac{1}{2} \sum_{i=1}^{n} \sum_{j=1}^{p} \big(x_{j}^{(i)}-p_\phi\{q_\theta(x_{j}^{(i)})\}\big)^2
+& = \frac{1}{2} \sum_{i=1}^{n} [x^{(i)}-p_\phi\{q_\theta(x^{(i)}\}]^{\text{T}}[x^{(i)}-p_\phi\{q_\theta(x^{(i)}\}] \\
+& = \frac{1}{2} \sum_{i=1}^{n} \sum_{j=1}^{p} \big(x_{j}^{(i)}-p^j_\phi\{q_\theta(x_{j}^{(i)})\}\big)^2
 \end{split}
 \end{equation}
 
-where $i$ stands for the $i$-th observation.
+where $i$ stands for the $i$-th observation and $j$ for the $j$-th element of the input $X$.
 
 Once we have a loss function, we can optimize the parameters of the encoder/decoder using the *chain rule* of derivatives for each layer (see equation \@ref(optim)).
 
@@ -113,7 +119,7 @@ Once the fundamental idea of autoencoders has been developped, a new generation 
 One way of learning useful representations using autoencoder is to impose a constraint of **sparsity** in the hidden representation [@ranzato-2007]. A sparse autoencoder is basically an autoencoder that has a sparsity penalty in the loss criterion:
 
 $$
-L(x, p_\phi\{q_\theta(x)\}) + \Omega(z)
+L(x, p_\phi\{q_\theta(x)\}) + \Omega(q_\theta(x))
 $$
 
 where $z$ is the hidden representation (or the output of the encoder). That sparsity penalty ($\Omega(z)$) will pull some neurons output values towards zero in the hidden layer, making them "inactive" [@Ng-2011]. That regularization will prevent overfitting and prevent the network to learn by heart every input.
@@ -162,10 +168,10 @@ knitr::include_graphics("images/vae-structure.png")
 The explicit variational autoencoder loss criterion is given by :
 
 $$
-L(x, p_\phi\{q_\theta(x)\}) + D_{KL}\big[q_\theta(z|x) || p_\phi(x|z)\big]
+L(x, p_\phi\{q_\theta(x)\}) + D_{KL}\big[q_\theta(z|x) || p(z)\big]
 $$
 
-where $D_{KL}$ is a regularizer called the Kullback-Leibler divergence. Its goal is to ensure that the two distributions $p$ and $q$ are somewhat similar.
+where $D_{KL}$ is a regularizer called the Kullback-Leibler divergence. Its goal is to ensure that the two distributions $p(z)$ and the encoder ($q_{\theta}(x)$) are somewhat similar. The function $p(z)$ is a Gaussian distribution $N(0, I)$. 
 
 ## Adversarial autoencoders
 
@@ -195,7 +201,7 @@ This section aims to survey the different known applications of autoencoders in 
 
 ## Dimensionality reduction
 
-One of the first applications for which the autoencoders were used was associated with **dimensionality reduction**. For example, [@HintonSalakhutdinov2006b] showed that a deep autoencoder could learn to represent data in a smaller representation better than the widely used PCA method (see figure \@ref(fig:pca)).
+One of the first applications for which the autoencoders were used was associated with **dimensionality reduction**. For example, [@HintonSalakhutdinov2006b] showed that a **deep autoencoder** could learn to represent data in a smaller representation better than the widely used PCA method (see figure \@ref(fig:pca)).
 
 ```{r pca, fig.cap="Comparison between the learned representation of a PCA and a deep autoencoder.", out.width = '100%', fig.align='center', fig.pos=""}
 knitr::include_graphics("images/pca-vs-ae.png")
@@ -209,21 +215,21 @@ Another application of autoencoders is related with **information retrieval**. T
 
 A task that is often related with unsupervised methods is the idea of finding outliers or anomalies in a dataset. In fact, that's normally an information we don't have and that we can't train on it. Thus, we generally need unsupervised ways of discovering those anomalies.
 
-For instance, [@zhou-2017] used denoising autoencoders to build an unsupervised anomaly detection algorithm. They applied their methodology, that includes an anomaly regularizing penalty, on MNIST dataset to find anomalies in hand written digits.
+For instance, [@zhou-2017] used **denoising autoencoders** to build an unsupervised anomaly detection algorithm. They applied their methodology, that includes an anomaly regularizing penalty, on MNIST dataset to find anomalies in hand written digits.
 
-Another interesting example of anomaly detection using autoencoders was made by [@zong2018deep]. They used autoencoders to build a small representation and use that representation as well as the reconstruction error to train a Gaussian Mixture Model (GMM). The figure \@ref(fig:DAGMM) shows the overview of the compression (deep autoencoder) and estimation (GMM) tasks.
+Another interesting example of anomaly detection using autoencoders was made by [@zong2018deep]. They used **deep autoencoders** to build a small representation and use that representation as well as the reconstruction error to train a Gaussian Mixture Model (GMM). The figure \@ref(fig:DAGMM) shows the overview of the compression (deep autoencoder) and estimation (GMM) tasks.
 
 ```{r DAGMM, fig.cap="Overview of the Deep Autoencoder and Gaussian Mixture Model.", out.width = '100%', fig.align='center', fig.pos=""}
 knitr::include_graphics("images/dagmm.png")
 ```
 
-Autoencoders and density estimation are often used togheter in anomaly detection problems. It is the case in one-class learning problem such as [@Cao-2016]. Their work showed that it's possible to use the power of autoencoders to learn a small compact representation and then use density estimation techniques such as Centroid or KDD that work best in low-dimensionnal situations.
+Autoencoders and density estimation are often used togheter in anomaly detection problems. It is the case in one-class learning problem such as [@Cao-2016]. Their work showed that it's possible to use the power of **deep autoencoders** to learn a small compact representation and then use density estimation techniques such as Centroid or KDD that work best in low-dimensionnal situations.
 
 ## Clustering
 
-A well known task in the unsupervised world is the task of clustering. [@DilokthanakulMG16] used varitional autoencoders and introduced a Gaussian Mixture Model (GMM) as a prior distribution with the goal of performing clustering. They also discuss the problem of over-regularisation than varitional autoencoders can have and how to tackle this problem.
+A well known task in the unsupervised world is the task of clustering. [@DilokthanakulMG16] used **varitional autoencoders** and introduced a Gaussian Mixture Model (GMM) as a prior distribution with the goal of performing clustering. They also discuss the problem of over-regularisation than varitional autoencoders can have and how to tackle this problem.
 
-[@Xie-2016] also proposed a deep embedding approach that simultaneously learns feature reprensentations and cluster assignements. Their methodology consists of first initializing a denoising autoencoder. Once that first model is trained, they are able to represent the data is a smaller representation (they drop the decoder). They also initialize clusters assignements by using this representation and the $k$-means algorithm. Then, they simultanuasly train the $k$ cluster centers in the feature space $Z$ and the parameters $\theta$ that maps data points to $Z$. The figure \@ref(fig:xie2016) illustrates the network structure where we can see the autoencoder at the top (the learned encoder in gray dashed rectangle), and then the *deep embedded clustering* network at the bottom.
+[@Xie-2016] also proposed a deep embedding approach that simultaneously learns feature reprensentations and cluster assignements. Their methodology consists of first initializing a **denoising autoencoder**. Once that first model is trained, they are able to represent the data is a smaller representation (they drop the decoder). They also initialize clusters assignements by using this representation and the $k$-means algorithm. Then, they simultanuasly train the $k$ cluster centers in the feature space $Z$ and the parameters $\theta$ that maps data points to $Z$. The figure \@ref(fig:xie2016) illustrates the network structure where we can see the autoencoder at the top (the learned encoder in gray dashed rectangle), and then the *deep embedded clustering* network at the bottom.
 
 ```{r xie2016, fig.cap="Deep Embedded Clustering network strcuture", out.width = '100%', fig.align='center', fig.pos=""}
 knitr::include_graphics("images/xie-2016.png")
@@ -231,7 +237,7 @@ knitr::include_graphics("images/xie-2016.png")
 
 [@Xi-2018] also used autoencoders to make clustering on a complex space where the non-linearity of neural networks allowed them to learn complex subspaces.
 
-Multivariate density estimation is widely performed for fundamental unsupervised tasks such a clustering. [@ijcai2018-374] used variational autoencoders and applied a Student-$t$ distribution instead of a Gaussian distribution for the decoder.
+Multivariate density estimation is widely performed for fundamental unsupervised tasks such a clustering. [@ijcai2018-374] used **variational autoencoders** and applied a Student-$t$ distribution instead of a Gaussian distribution for the decoder.
 
 \newpage
 
