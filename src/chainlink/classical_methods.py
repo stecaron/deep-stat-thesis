@@ -20,5 +20,5 @@ hclust_ward = AgglomerativeClustering(n_clusters=2, linkage="ward").fit(X)
 plot_chainlink(dt[["x", "y", "z"]], hclust_ward.labels_, show=True)
 
 # Spectral clustering
-spectral = SpectralClustering(n_clusters=2, affinity="precomputed").fit(X)
+spectral = SpectralClustering(n_clusters=2).fit(X)
 plot_chainlink(dt[["x", "y", "z"]], spectral.labels_, show=True)
