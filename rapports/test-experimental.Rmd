@@ -42,7 +42,7 @@ The main challenge (task) with this dataset is that it is linearly not separable
 
 # Traditionnal clustering methods
 
-In this section, I will try different traditional clustering method to the `chainlink` dataset and see which methods are able to retrieve the 2 different groups.
+In this section, I will try different traditional clustering methods to the `chainlink` dataset and see which methods are able to retrieve the 2 different groups.
 
 ## $k$-means
 
@@ -76,7 +76,7 @@ Again, the model is not able to properly separate the data. However, we see a di
 
 ![](graphs/hclust.gif)
 
-The "Ward" linkage method builds groups that minimize the variance in the clusters created. It tends to create more compact clusters. It is a feature we generally want from clustering, that's why this linkage method is interesting in many applications. However, it does not fill our needs for the `chainlink` clustering task. At opposite, the "single" linkage method uses minimal distance between observations of 2 groups to merge clusters together. It's often characterized by the *chianing effect*, where a chain of points could be merged together without taking into account the overall shape of the emerging cluster [@Manning:2008:IIR:1394399]. This local property could be useful in this case. As such, I trained a hierarchical model with single linkage method:
+The "Ward" linkage method builds groups that minimize the variance in the clusters created. It tends to create more compact clusters. It is a feature we generally want from clustering, that's why this linkage method is interesting in many applications. However, it does not fill our needs for the `chainlink` clustering task. At opposite, the "single" linkage method uses minimal distance between observations of 2 groups to merge clusters together. It's often characterized by the *chaining effect*, where a chain of points could be merged together without taking into account the overall shape of the emerging cluster [@Manning:2008:IIR:1394399]. This local property could be useful in this case. As such, I trained a hierarchical model with single linkage method:
 
 ```{python}
 hclust_single = AgglomerativeClustering(n_clusters=2, linkage="single").fit(X)
@@ -107,7 +107,7 @@ From the figure below, we can see that the spectral clustering is not able to se
 
 Now that we have tried different traditional approaches to the `chainlink` dataset, we can now try another unsupervised approach: an autoencoder. In this first attempt to train an autoencoder for a clustering task, I kept the approach as simple as possible. As such, here is the summary of my experiment:
 
-1. Train an autoencoder and generates an hidden representation in higher dimensions than the 3 dimensional inputs.
+1. Train an autoencoder and generates a hidden representation in higher dimensions than the 3 dimensional inputs.
 2. Perform a singular value decomposition (SVD) of the hidden representation to retrieve a low dimensions vector for each input.
 3. Apply a traditional clustering method on this reduced inputs space.
 
@@ -154,15 +154,15 @@ LEARNING_WEIGHT = 0.001
 NUM_EPOCHS = 25
 ```
 
-After the autoencoder has being trained, we retrieved for each input, the **embeddings** of length 100. I then performed a SVD decomposition of this 100 dimensions matrix to retrieve a 3 dimensional space. Finally, I applied a **spectral clustering** with 2 clusters.
+After the autoencoder has being trained, we retrieved for each input, the **embeddings** of length 100. Then, I performed a SVD decomposition of this 100 dimensions matrix to retrieve a 3 dimensional space. Finally, I applied a **spectral clustering** with 2 clusters.
 
 ```{python}
 from sklearn.decomposition import TruncatedSVD
 from sklearn.cluster import SpectralClustering
 
-embeddings = predict(SimpleAE, X).detach().numpy()
-svd_embeddings = TruncatedSVD(3).fit_transform(embeddings)
-svd_spectral = SpectralClustering(n_clusters=2).fit(svd_embeddings)
+embeddings = predict(SimpleAE, X).detach().numpy() # generate embeddings size 100
+svd_embeddings = TruncatedSVD(3).fit_transform(embeddings) # decompose it back to 3 dimensions
+svd_spectral = SpectralClustering(n_clusters=2).fit(svd_embeddings) # fit a spectral clustering
 ```
 
 We can see from the figure below that the clustering method is able to separate the two groups in the 3 dimensional space. It means that the autoencoder has been able to generate a linear separable 3D space. This is mainly possible by the activation functions applied to each layer that allows the learning of nonlinearities.
