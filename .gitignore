@@ -6,3 +6,8 @@
 .vscode/
 
 __pycache__/
+
+/data/**
+
+# Hide the .gitmodules file (hide the intact adress)
+.gitmodules
