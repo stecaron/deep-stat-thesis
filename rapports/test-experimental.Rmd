@@ -1,5 +1,5 @@
 ---
-title: "Experimental clustering using autoencoders"
+title: "Clustering using autoencoders"
 subtitle: "Département de mathématiques et de statistique </br> Université Laval"
 author: "Stéphane Caron"
 date: "`r format(Sys.time(), ' %B %d, %Y')`"
