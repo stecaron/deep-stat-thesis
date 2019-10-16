@@ -84,7 +84,7 @@ hclust_single = AgglomerativeClustering(n_clusters=2, linkage="single").fit(X)
 
 We can see that the chaining effect did help us in this case:
 
-#### Mettre image du hclust avec single
+![](graphs/hclust_single.gif)
 
 ## Spectral clustering
 
