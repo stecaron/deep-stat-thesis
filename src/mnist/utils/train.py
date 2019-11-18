@@ -4,8 +4,8 @@ def train_mnist(train_loader, model, criterion, loss_func, n_epoch):
 
     for epoch in range(n_epoch):
         for step, (x, target) in enumerate(train_loader):
-            inputs = x.view(-1, 28*28)
-            outputs = x.view(-1, 28*28)
+            inputs = x
+            outputs = x
 
             encoded, decoded = model(inputs)
 

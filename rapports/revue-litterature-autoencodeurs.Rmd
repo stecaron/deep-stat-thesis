@@ -195,6 +195,33 @@ In the training process, the adversarial autoencoder is trying to match the $q(z
 
 Adversarial autoencoders are generative models that could be used to generate new data, or also to do semi-supervised learning or clustering.
 
+# One-class classification
+
+In one-class classification problems, one class (which is usually refered as positive or target class in the litterature) is well characterized by instances in the training dataset while the other classes (negatives or outliers) have either no instances or very few of them [@DBLP:journals/corr/KhanM13]. In in nutshell, the objective is generally to build a subspace that contains as much positive examples as possible and excludes the negative ones, without knowing the targets. This task is often used to identify or remove small number of anomalies or outliers within a dataset. We can distinguish 3 broad categories: density estimation, boundary methods and reconstruction methods.
+
+## Density estimation
+
+Gaussian and mixture of Gaussians are 2 well known density estimation methods. These methods assume the data is distributed according to the normal distribution or to a mixture of normals. The parameters of these normal distributions can be found iteratively with EM algorithm. As soon as the density are estimated, we can use a certain threshold to determine what should be considered as a positive or inlier observations.
+
+Other density estimation alternatives could be the Parzen and Naive Parzen methods. Those nonparametric methods do not make any assumptions about the data distribution. In fact, those methods do not need any parameters estimations. 
+
+## Boundary methods
+
+A well known boundary method is the one-class SVM or more generally the Support Vector data description method (SVDD). In this case, we want to define a hypersphere with minimal volume covering the majority of probability mass of the data. The number of parameters to be estimated is equal to the size of the training dataset, which makes this method less effective when dealing with large dataset. One usefull feature of one-class SVM is that we can leverage kernel functions, which allow us to represent complexe subspaces.
+
+## Reconstruction methods
+
+Reconstruction methods are generally associated with matrix factorization, which has become popular in the recent years. In brief, these methods provide a reconstruction matrix $\hat{X}$ of the input $X$ and use a certain norm measure to determine which observations of $X$ are anomalous. 
+
+Principal component analysis (PCA) could be considered as a reconstruction anomaly detection method. This method basically finds the directions that maximizes variances in the data. The projection of a matrix $X_{n \times p}$ into a lower dimensions matrix $T_{n \times d}$ (where $d < p$) could be expressed as:
+
+$$
+T_d=XW_d
+$$
+where $W_d$ is the $d$ first columns of the eigenvectors matrix of $X^TX$. The reconstructed matrix $\hat{X_d}$ could then be retrieved with $T_d W_{d}^{T}$. To identify anomalous data, we could look at observations of this reconstructed matrix that are far from the initial $X$ matrix. However, PCA is highly sensitive to data perturbations, as one anomaly can increase a lot the variance within one component and completely changes the projection directions which can often hide anomalies.
+
+To tackle the problem just mentionned, other versions of PCA were developped such as Robust PCA. This method use a more clever way of decomposing the data to isolate the noise. However, this method is still doing a linear decomposition of the data.
+
 # Applications of autoencoders
 
 This section aims to survey the different known applications of autoencoders in the litterature and across different industries.
@@ -213,9 +240,9 @@ Another application of autoencoders is related with **information retrieval**. T
 
 ## Anomaly detection
 
-A task that is often related with unsupervised methods is the idea of finding outliers or anomalies in a dataset. In fact, that's normally an information we don't have and that we can't train on it. Thus, we generally need unsupervised ways of discovering those anomalies.
+A task that is often related with unsupervised methods is the idea of finding outliers or anomalies in a dataset. In fact, that's normally an information we don't have and that we can't train on it. Thus, we generally need unsupervised ways of discovering those anomalies. Anomalies can often be interesting from a business perspective when we consider they could be related with examples such as: frauds, medical problems, structural defects, malfunctioning equipment, etc. 
 
-For instance, [@zhou-2017] used **denoising autoencoders** to build an unsupervised anomaly detection algorithm. They applied their methodology, that includes an anomaly regularizing penalty, on MNIST dataset to find anomalies in hand written digits.
+For instance, [@zhou-2017] used **deep autoencoders** to build an unsupervised anomaly detection algorithm called *robust deep autoencoders*. They applied their methodology, that includes an anomaly regularizing penalty, on MNIST dataset to find anomalies in hand written digits. Their intuition is that they can isolate the noise and outliers in the input, and the autoencoder is trained after this isolation. Their model is inspired by Robust Principal Component Analysis where the input $X$ is decomposed in 2 parts: $L_D + S$, where $L_D$ can be effectively reconstructed by an autoencoder and $S$ contains the noise and the outliers in the original data. 
 
 Another interesting example of anomaly detection using autoencoders was made by [@zong2018deep]. They used **deep autoencoders** to build a small representation and use that representation as well as the reconstruction error to train a Gaussian Mixture Model (GMM). The figure \@ref(fig:DAGMM) shows the overview of the compression (deep autoencoder) and estimation (GMM) tasks.
 
@@ -223,7 +250,11 @@ Another interesting example of anomaly detection using autoencoders was made by 
 knitr::include_graphics("images/dagmm.png")
 ```
 
+In the figure above, the estimation network estimates the GMM parameters without using EM algorithm. 
+
 Autoencoders and density estimation are often used togheter in anomaly detection problems. It is the case in one-class learning problem such as [@Cao-2016]. Their work showed that it's possible to use the power of **deep autoencoders** to learn a small compact representation and then use density estimation techniques such as Centroid or KDD that work best in low-dimensionnal situations.
+
+In [@DBLP:journals/corr/abs-1802-06360] the authors proposed an anomaly detection framework where the representation learned by the autoencoder is oriented to the task of detecting anomaly. In fact, they first train an autoencoder and then reuse the encoder part to output a compressed representation of the input that will be used as input for a one-class neural network. The encoder parameters are then adjusted based on the error made by the one-class neural network. This one-class model is a basic feed-forward network that replicates the optimization of a one-class SVM. In a nutshell, they leverage the capacity of deep neural networks to extract rich representation of the data along with a one-class objective.
 
 ## Clustering
 
