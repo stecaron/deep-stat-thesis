@@ -1,11 +1,13 @@
 import numpy
 
+
 def train_mnist(train_loader, model, criterion, loss_func, n_epoch):
 
     for epoch in range(n_epoch):
-        for step, (x, target) in enumerate(train_loader):
-            inputs = x
-            outputs = x
+        for data in train_loader:
+            inputs, targets = data
+            inputs = inputs.float()
+            outputs = inputs
 
             encoded, decoded = model(inputs)
 
@@ -14,5 +16,4 @@ def train_mnist(train_loader, model, criterion, loss_func, n_epoch):
             loss.backward()
             criterion.step()
 
-            if step % 100 == 0:
-                print('Epoch: ', epoch, '| train loss: %.4f' % loss.data.numpy())
+        print('Epoch: ', epoch, '| train loss: %.4f' % loss.data.numpy())

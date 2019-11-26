@@ -20,7 +20,8 @@ shinyServer(function(input, output) {
                           stride = input$stride, 
                           padding = input$padding, 
                           dilation = input$dilation, 
-                          type_layer = input$type_layer)
+                          type_layer = input$type_layer,
+                          output_padding = input$output_padding)
   })
   
   output$output_size <- renderText({

@@ -23,7 +23,8 @@ shinyUI(fluidPage(
       numericInput("kernel_size", "Kernel Size:", value = 4, min = 1, step = 1),
       numericInput("stride", "Stride:", value = 1, min = 1, step = 1),
       numericInput("padding", "Padding:", value = 0, min = 0, step = 1),
-      numericInput("dilation", "Dilatation:", value = 1, min = 0, step = 1)
+      numericInput("dilation", "Dilatation:", value = 1, min = 0, step = 1),
+      numericInput("output_padding", "Output Padding:", value = 0, min = 0, step = 1)
     ),
     
     # Show a plot of the generated distribution

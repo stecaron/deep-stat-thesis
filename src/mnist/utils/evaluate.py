@@ -1,4 +1,5 @@
 import numpy
+import torch
 import matplotlib.pyplot as plt
 
 
@@ -14,6 +15,7 @@ def plot_comparisons(true, preds):
         plottable_image = numpy.reshape(true[id], (28, 28))
         ax[0, i].imshow(plottable_image, cmap='gray_r')
         ax[0, i].axis('off')
+        plt.gray()
         i+=1
     
     i=0
@@ -21,6 +23,7 @@ def plot_comparisons(true, preds):
         plottable_image = numpy.reshape(preds[id].detach(), (28, 28))
         ax[1, i].imshow(plottable_image, cmap='gray_r')
         ax[1, i].axis('off')
+        plt.gray()
         i+=1
     
     plt.show()
