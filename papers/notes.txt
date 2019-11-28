@@ -80,3 +80,14 @@ Contractive AE -> similar to denoting AE
 Dataset:
 
 http://odds.cs.stonybrook.edu/
+
+
+
+-------------
+
+Outlier selection 
+
+https://www.youtube.com/watch?v=Z35tGNHmlD0
+
+Intéressant de voir le graph de Venn avec la confusion matrix (misses, catch, etc) -> 9:46
+
