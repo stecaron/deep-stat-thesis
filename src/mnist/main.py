@@ -10,11 +10,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
 from src.mnist.data import load_mnist
-from src.mnist.autoencoder import AutoEncoder, ConvAutoEncoder, ConvAutoEncoder2
+from src.mnist.autoencoder import AutoEncoder, ConvAutoEncoder2
 from src.mnist.utils.plot import plot_n_images, plot_outliers_idx
 from src.mnist.utils.train import train_mnist
 from src.mnist.outliers import lof_scoring
-from src.mnist.utils.evaluate import plot_comparisons
+from src.mnist.utils.evaluate import plot_comparisons, to_img
 
 # General parameters
 DOWNLOAD_MNIST = False
@@ -32,18 +32,10 @@ POURC_OUTLIER=0.01
 # Load data
 train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
 
-# We normalize pixels to be between 0 and 1
-train_data.data = train_data.data
-
 # Plot 10 randoms "4"
 #plot_n_images(train_data, target=3)
 
 # Train the autoencoder
-
-#model = ConvAutoEncoder()
-#optimizer = torch.optim.Adadelta(model.parameters(), lr=LR, rho=0.95)
-#loss_func = nn.BCELoss()
-
 model = ConvAutoEncoder2()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 loss_func = nn.MSELoss()
