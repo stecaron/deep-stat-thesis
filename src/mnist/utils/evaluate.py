@@ -2,6 +2,8 @@ import numpy
 import torch
 import matplotlib.pyplot as plt
 
+from matplotlib.pyplot import savefig
+
 
 def to_img(x):
     x = 0.5 * (x + 1)
@@ -34,3 +36,4 @@ def plot_comparisons(true, preds):
         i+=1
     
     plt.show()
+    return fig

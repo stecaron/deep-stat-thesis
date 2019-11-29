@@ -1,4 +1,5 @@
 import numpy
+from comet_ml import Experiment
 import torch
 import pandas
 import torch.nn as nn
@@ -16,18 +17,27 @@ from src.mnist.utils.train import train_mnist
 from src.mnist.outliers import lof_scoring
 from src.mnist.utils.evaluate import plot_comparisons, to_img
 
+# Create an experiment
+experiment = Experiment(project_name="deep-stats-thesis", workspace="stecaron")
+experiment.add_tag("mnist_conv_ae")
+
 # General parameters
 DOWNLOAD_MNIST = False
 PATH_DATA = '/Users/stephanecaron/Downloads/mnist'
 
 # Define training parameters
-EPOCH = 75
-BATCH_SIZE = 1024
-LR = 0.01
-CLASS_SELECTED = 6  # on which class we want to learn outliers
-CLASS_CORRUPTED = 9
-POURC_CORRUPTED = 0.05
-POURC_OUTLIER = 0.01
+hyper_params = {
+    "EPOCH" : 5,
+    "BATCH_SIZE" : 1024,
+    "LR" : 0.01,
+    "CLASS_SELECTED" : 6,  # on which class we want to learn outliers
+    "CLASS_CORRUPTED" : 9,
+    "POURC_CORRUPTED" : 0.05,
+    "POURC_OUTLIER" : 0.01
+}
+
+# Log experiment parameters
+experiment.log_parameters(hyper_params)
 
 # Load data
 train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
@@ -37,30 +47,31 @@ train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
 
 # Train the autoencoder
 model = ConvAutoEncoder2()
-optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 loss_func = nn.MSELoss()
 
-idx_selected = numpy.where(train_data.train_labels == CLASS_SELECTED)[0]
+idx_selected = numpy.where(train_data.train_labels == hyper_params["CLASS_SELECTED"])[0]
 idx_corrupted = numpy.random.choice(
-    numpy.where(train_data.train_labels == CLASS_CORRUPTED)[0],
-    int(len(idx_selected) * POURC_CORRUPTED))
+    numpy.where(train_data.train_labels == hyper_params["CLASS_CORRUPTED"])[0],
+    int(len(idx_selected) * hyper_params["POURC_CORRUPTED"]))
 idx_final = numpy.concatenate((idx_selected, idx_corrupted))
 
 train_data.data = train_data.data[idx_final]
 train_data.targets = train_data.targets[idx_final]
 
 train_loader = Data.DataLoader(dataset=train_data,
-                               batch_size=BATCH_SIZE,
+                               batch_size=hyper_params["BATCH_SIZE"],
                                shuffle=True)
 model.train()
 train_mnist(train_loader,
             model,
             criterion=optimizer,
             loss_func=loss_func,
-            n_epoch=EPOCH)
+            n_epoch=hyper_params["EPOCH"],
+            experiment=experiment)
 
 # Evaluate the AE with few examples
-id_test = numpy.where(test_data.train_labels == CLASS_SELECTED)[0]
+id_test = numpy.where(test_data.train_labels == hyper_params["CLASS_SELECTED"])[0]
 test_data.data = test_data.data[id_test]
 test_data.targets = test_data.targets[id_test]
 test_loader = Data.DataLoader(dataset=test_data, batch_size=8, shuffle=True)
@@ -71,7 +82,8 @@ model.eval()
 _, decoded_images_test = model(inputs)
 pic = to_img(decoded_images_test)
 pic = torch.squeeze(pic, 1)
-plot_comparisons(torch.squeeze(inputs, 1), pic)
+fig = plot_comparisons(torch.squeeze(inputs, 1), pic)
+experiment.log_figure(figure_name="plot_comparison", figure=fig, overwrite=True)
 
 # Run the autoencoder on training data
 view_data = train_data.data.type(torch.FloatTensor)
@@ -84,7 +96,7 @@ pandas.DataFrame(encoded_data.detach().numpy()).to_csv(
 # Compute a score of anomaly
 lof_score = lof_scoring(encoded_data.data.numpy(),
                         n_neighbors=20,
-                        pourc=POURC_OUTLIER)
+                        pourc=hyper_params["POURC_OUTLIER"])
 
 # Plot the encoded representations with outlier score
 colors = ("red", "blue")

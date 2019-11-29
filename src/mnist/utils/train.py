@@ -1,7 +1,7 @@
 import numpy
 
 
-def train_mnist(train_loader, model, criterion, loss_func, n_epoch):
+def train_mnist(train_loader, model, criterion, loss_func, n_epoch, experiment):
 
     for epoch in range(n_epoch):
         for data in train_loader:
@@ -17,3 +17,5 @@ def train_mnist(train_loader, model, criterion, loss_func, n_epoch):
             criterion.step()
 
         print('Epoch: ', epoch, '| train loss: %.4f' % loss.data.numpy())
+        # log experiment result
+        experiment.log_metric("train_loss", loss.data.numpy())
