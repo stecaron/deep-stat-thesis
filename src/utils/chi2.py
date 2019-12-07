@@ -1,5 +1,5 @@
 import numpy
-import scipy
+from scipy.stats import chi2
 from scipy.spatial import distance
 
 
@@ -18,6 +18,6 @@ def compute_pvalues(dt, mean, sigma):
                           'mahalanobis',
                           VI=numpy.linalg.inv(sigma))
     loss = loss**2
-    pval = 1 - scipy.stats.chi2.cdf(loss, df=mean.shape[1])  # we want 1 - Pr (X < x)
+    pval = 1 - chi2.cdf(loss, df=mean.shape[1])  # we want 1 - Pr (X < x)
 
     return pval
