@@ -21,8 +21,8 @@ experiment.add_tag("simulations_chi2_AE")
 
 # Set distributions parameters
 hyper_params = {
-    "N_DIM": 3,
-    "N_OBS": 1000,
+    "N_DIM": 20,
+    "N_OBS": 2000,
     "NOISE_PRC": 0.025,
     "EPOCH": 50,
     "BATCH_SIZE": 64,
