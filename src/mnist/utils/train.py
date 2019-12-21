@@ -29,6 +29,7 @@ def train_mnist_vae(train_loader,
                     criterion,
                     n_epoch,
                     experiment,
+                    beta,
                     loss_type="binary",
                     mnist=True):
     # set the train mode
@@ -44,7 +45,7 @@ def train_mnist_vae(train_loader,
 
             criterion.zero_grad()
             reconstructed_x, z_mu, z_var, _ = model(x)
-            loss = calculate_loss(x, reconstructed_x, z_mu, z_var, loss_type=loss_type)
+            loss = calculate_loss(x, reconstructed_x, z_mu, z_var, loss_type=loss_type, beta=beta)
             loss.backward()
             train_loss += loss.item()
             criterion.step()
