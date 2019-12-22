@@ -180,8 +180,7 @@ class VariationalAE(nn.Module):
         # reparameterize
         std = torch.exp(z_logvar / 2)
         eps = torch.randn_like(std)
-        x_sample = eps.mul(std).add_(z_mu)
-
+        x_sample = z_mu + std * eps
         z = x_sample
 
         # decode
