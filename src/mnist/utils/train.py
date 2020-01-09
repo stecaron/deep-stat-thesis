@@ -1,6 +1,6 @@
 import numpy
 
-from src.mnist.utils.vae import calculate_loss
+from src.mnist.utils.loss_vae import calculate_loss
 
 
 def train_mnist(train_loader, model, criterion, loss_func, n_epoch,
@@ -31,7 +31,7 @@ def train_mnist_vae(train_loader,
                     experiment,
                     beta,
                     loss_type="binary",
-                    mnist=True):
+                    flatten=True):
     # set the train mode
     model.train()
 
@@ -40,7 +40,7 @@ def train_mnist_vae(train_loader,
 
         for i, (x, y) in enumerate(train_loader):
             # reshape the data into [batch_size, 784]
-            if mnist:
+            if flatten:
                 x = x.view(-1, 28 * 28)
 
             criterion.zero_grad()
@@ -50,7 +50,7 @@ def train_mnist_vae(train_loader,
             train_loss += loss.item()
             criterion.step()
 
-        train_loss /= len(train_loader)
+        train_loss /= 64
 
         print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f}')
         experiment.log_metric("train_loss", train_loss)

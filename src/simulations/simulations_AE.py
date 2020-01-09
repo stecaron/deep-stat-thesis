@@ -84,7 +84,7 @@ train_mnist_vae(train_loader,
                 experiment=experiment,
                 loss_type="mse",
                 beta = hyper_params["BETA"],
-                mnist=False)
+                flatten=False)
 
 # Build "test" dataset
 # Simulate the "majority" class

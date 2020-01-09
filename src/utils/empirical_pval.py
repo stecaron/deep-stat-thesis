@@ -9,7 +9,7 @@ def compute_empirical_pval(dt_train, model, dt_test):
     # Encode train data
     dt_train_torch = torch.from_numpy(dt_train).float()
     dt_train_torch = torch.unsqueeze(dt_train_torch, 1)
-    dt_train_torch = dt_train_torch.view(-1, 28 * 28)
+    #dt_train_torch = dt_train_torch.view(-1, 28 * 28)
     generated_train, mu_train, logvar_train, _ = model(dt_train_torch)
     mu_train = mu_train.detach().numpy()
     logvar_train = logvar_train.detach().numpy()
@@ -17,7 +17,7 @@ def compute_empirical_pval(dt_train, model, dt_test):
     # Encode test data
     dt_test_torch = torch.from_numpy(dt_test).float()
     dt_test_torch = torch.unsqueeze(dt_test_torch, 1)
-    dt_test_torch = dt_test_torch.view(-1, 28 * 28)
+    #dt_test_torch = dt_test_torch.view(-1, 28 * 28)
     generated_test, mu_test, logvar_test, _ = model(dt_test_torch)
     mu_test = mu_test.detach().numpy()
     logvar_test = logvar_test.detach().numpy()

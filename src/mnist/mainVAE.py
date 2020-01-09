@@ -12,7 +12,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
 from src.mnist.data import load_mnist
-from src.mnist.autoencoder import VariationalAE
+from src.mnist.vae import VariationalAE
+from src.mnist.vae import ConvVAE
+from src.mnist.vae import ConvLargeVAE
 from src.mnist.utils.train import train_mnist_vae
 from src.mnist.utils.evaluate import to_img
 from src.utils.empirical_pval import compute_empirical_pval
@@ -29,20 +31,21 @@ PATH_DATA = '/Users/stephanecaron/Downloads/mnist'
 
 # Define training parameters
 hyper_params = {
-    "EPOCH": 25,
-    "BATCH_SIZE": 64,
+    "EPOCH": 75,
+    "BATCH_SIZE": 32,
     "LR": 0.001,
     "TRAIN_SIZE": 4000,
     "TRAIN_NOISE": 0.01,
-    "TEST_SIZE": 200,
-    "TEST_NOISE": 0.1,
+    "TEST_SIZE": 500,
+    "TEST_NOISE": 0.15,
     "CLASS_SELECTED": 6,  # on which class we want to learn outliers
     "CLASS_CORRUPTED": [2, 7],  # which class we want to corrupt our dataset with
-    "INPUT_DIM": 28 * 28,  # In the case of MNIST
-    "HIDDEN_DIM": 256,  # hidden layer dimensions (before the representations)
-    "LATENT_DIM": 125,  # latent distribution dimensions
+    #"INPUT_DIM": 28 * 28,  # In the case of MNIST
+    #"HIDDEN_DIM": 256,  # hidden layer dimensions (before the representations)
+    "LATENT_DIM": 200,  # latent distribution dimensions
     "ALPHA": 0.1, # level of significance for the test
-    "BETA": 1 # hyperparameter to weight KLD vs RCL 
+    "BETA": 1, # hyperparameter to weight KLD vs RCL
+    "MODEL_NAME": "vae_model.pt"
 }
 
 # Log experiment parameters
@@ -54,8 +57,9 @@ train_data.data = train_data.data
 test_data.data = test_data.data
 
 # Train the autoencoder
-model = VariationalAE(hyper_params["INPUT_DIM"], hyper_params["HIDDEN_DIM"],
-                      hyper_params["LATENT_DIM"])
+# model = VariationalAE(hyper_params["INPUT_DIM"], hyper_params["HIDDEN_DIM"],
+#                       hyper_params["LATENT_DIM"])
+model = ConvLargeVAE(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
 # Build "train" and "test" datasets
@@ -103,7 +107,8 @@ train_mnist_vae(train_loader,
                 n_epoch=hyper_params["EPOCH"],
                 experiment=experiment,
                 beta=hyper_params["BETA"],
-                loss_type="binary")
+                loss_type="binary",
+                flatten=False)
 
 # Compute p-values
 train_data.data = train_data.data.detach().numpy()
@@ -182,3 +187,5 @@ for i in range(25):
 
 experiment.log_figure(figure_name="better_observations", figure=fig, overwrite=True)
 plt.show()
+
+torch.save(model, hyper_params["MODEL_NAME"])
