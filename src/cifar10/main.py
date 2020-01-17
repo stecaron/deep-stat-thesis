@@ -1,89 +1,93 @@
 import numpy
 from comet_ml import Experiment
 import torch
-import pandas
-import math
-import torch.nn as nn
+
 import torch.utils.data as Data
-from torchvision.utils import save_image
-
 import matplotlib.pyplot as plt
-from matplotlib import cm
 
-from src.mnist.data import load_mnist
-from src.mnist.vae import VariationalAE
-from src.mnist.vae import ConvVAE
-from src.mnist.vae import ConvLargeVAE
+from src.cifar10.data import load_cifar10
+from src.cifar10.vae import ConvLargeVAE
 from src.mnist.utils.train import train_mnist_vae
-from src.mnist.utils.evaluate import to_img
 from src.utils.empirical_pval import compute_empirical_pval
 from src.mnist.utils.stats import test_performances
+
 
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
-                        disabled=True)
-experiment.add_tag("mnist_vae")
+                        disabled=False)
+experiment.add_tag("cifar10_vae")
 
 # General parameters
-DOWNLOAD_MNIST = False
-PATH_DATA = '/Users/stephanecaron/Downloads/mnist'
+DOWNLOAD_CIFAR10 = False
+PATH_DATA = '/Users/stephanecaron/Downloads/cifar-10'
+
+# CIFAR-10 labels
+# 0: airplane
+# 1: automobile
+# 2: bird
+# 3: cat
+# 4: deer
+# 5: dog
+# 6: frog
+# 7: horse
+# 8: ship
+# 9: truck
 
 # Define training parameters
 hyper_params = {
-    "EPOCH": 75,
-    "BATCH_SIZE": 32,
+    "EPOCH": 30,
+    "BATCH_SIZE": 128,
     "LR": 0.001,
-    "TRAIN_SIZE": 4000,
+    "TRAIN_SIZE": 5000,
     "TRAIN_NOISE": 0.01,
-    "TEST_SIZE": 2000,
-    "TEST_NOISE": 0.05,
-    "CLASS_SELECTED": 6,  # on which class we want to learn outliers
-    "CLASS_CORRUPTED": [2, 7],  # which class we want to corrupt our dataset with
-    #"INPUT_DIM": 28 * 28,  # In the case of MNIST
-    #"HIDDEN_DIM": 256,  # hidden layer dimensions (before the representations)
-    "LATENT_DIM": 200,  # latent distribution dimensions
-    "ALPHA": 0.1, # level of significance for the test
+    "TEST_SIZE": 1000,
+    "TEST_NOISE": 0.1,
+    "CLASS_SELECTED": 1,  # on which class we want to learn outliers
+    "CLASS_CORRUPTED": [2, 3, 4],  # which class we want to corrupt our dataset with
+    "LATENT_DIM": 5,  # latent distribution dimensions
+    "ALPHA": 0.05, # level of significance for the test
     "BETA": 1, # hyperparameter to weight KLD vs RCL
-    "MODEL_NAME": "vae_model.pt",
-    "LOAD_MODEL": True,
-    "LOAD_MODEL_NAME": "vae_model.pt"
+    "MODEL_NAME": "vae_model_cifar10",
+    "LOAD_MODEL": False,
+    "LOAD_MODEL_NAME": "vae_model_cifar10"
 }
 
 # Log experiment parameters
 experiment.log_parameters(hyper_params)
 
 # Load data
-train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
+train_data, test_data = load_cifar10(PATH_DATA, download=DOWNLOAD_CIFAR10)
+
+train_data.targets = numpy.array(train_data.targets)
+test_data.targets = numpy.array(test_data.targets)
 
 # Train the autoencoder
-# model = VariationalAE(hyper_params["INPUT_DIM"], hyper_params["HIDDEN_DIM"],
-#                       hyper_params["LATENT_DIM"])
 model = ConvLargeVAE(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
 # Build "train" and "test" datasets
 id_maj_train = numpy.random.choice(
-    numpy.where(train_data.train_labels == hyper_params["CLASS_SELECTED"])[0],
+    numpy.where(train_data.targets == hyper_params["CLASS_SELECTED"])[0],
     int((1 - hyper_params["TRAIN_NOISE"]) * hyper_params["TRAIN_SIZE"]),
     replace=False
 )
 id_min_train = numpy.random.choice(
-    numpy.where(numpy.isin(train_data.train_labels, hyper_params["CLASS_CORRUPTED"]))[0],
+    numpy.where(numpy.isin(train_data.targets, hyper_params["CLASS_CORRUPTED"]))[0],
     int(hyper_params["TRAIN_NOISE"] * hyper_params["TRAIN_SIZE"]),
     replace=False
 )
 id_train = numpy.concatenate((id_maj_train, id_min_train))
 
 id_maj_test = numpy.random.choice(
-    numpy.where(test_data.test_labels == hyper_params["CLASS_SELECTED"])[0],
+    numpy.where(test_data.targets == hyper_params["CLASS_SELECTED"])[0],
     int((1 - hyper_params["TEST_NOISE"]) * hyper_params["TEST_SIZE"]),
-    replace=True
+    replace=False
 )
 id_min_test = numpy.random.choice(
-    numpy.where(numpy.isin(test_data.test_labels, hyper_params["CLASS_CORRUPTED"]))[0],
+    numpy.where(numpy.isin(test_data.targets, hyper_params["CLASS_CORRUPTED"]))[0],
     int(hyper_params["TEST_NOISE"] * hyper_params["TEST_SIZE"]),
-    replace=True
+    replace=False
 )
 id_test = numpy.concatenate((id_min_test, id_maj_test))
 
@@ -101,21 +105,24 @@ test_loader = Data.DataLoader(dataset=test_data,
                               batch_size=test_data.data.shape[0],
                               shuffle=False)
 
+# Train the model
 if hyper_params["LOAD_MODEL"]:
-    model = torch.load(hyper_params["LOAD_MODEL_NAME"])
+    model = torch.load(f'hyper_params["LOAD_MODEL_NAME"].pt')
 else :
     train_mnist_vae(train_loader,
-                model,
-                criterion=optimizer,
-                n_epoch=hyper_params["EPOCH"],
-                experiment=experiment,
-                beta=hyper_params["BETA"],
-                loss_type="binary",
-                flatten=False)
+                    model,
+                    criterion=optimizer,
+                    n_epoch=hyper_params["EPOCH"],
+                    experiment=experiment,
+                    beta=hyper_params["BETA"],
+                    loss_type="mse",
+                    flatten=False)
+
+torch.save(model, f'hyper_params["MODEL_NAME"].pt')
+model.save_weights(f'./{hyper_params["MODEL_NAME"]}.h5')
+experiment.log_asset(file_data=f'./{hyper_params["MODEL_NAME"]}.h5', file_name='model.h5')
 
 # Compute p-values
-train_data.data = train_data.data.detach().numpy()
-test_data.data = test_data.data.detach().numpy()
 pval, _ = compute_empirical_pval(train_data.data, model, test_data.data)
 pval_order = numpy.argsort(pval)
 
@@ -155,6 +162,10 @@ plt.show()
 
 # Compute some stats
 precision, recall = test_performances(pval, index, hyper_params["ALPHA"])
+print(f"Precision: {precision}")
+print(f"Recall: {recall}")
+experiment.log_metric("precision", precision)
+experiment.log_metric("recall", recall)
 
 # Show some examples
 fig, axs = plt.subplots(5, 5)
@@ -178,5 +189,3 @@ for i in range(25):
 
 experiment.log_figure(figure_name="better_observations", figure=fig, overwrite=True)
 plt.show()
-
-torch.save(model, hyper_params["MODEL_NAME"])
