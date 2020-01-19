@@ -1,4 +1,5 @@
 import numpy
+import time
 
 from src.mnist.utils.loss_vae import calculate_loss
 
@@ -39,6 +40,7 @@ def train_mnist_vae(train_loader,
     for epoch in range(n_epoch):
         train_loss = 0
 
+        start = time.time()
         for i, (x, y) in enumerate(train_loader):
             # reshape the data into [batch_size, 784]
             if flatten:
@@ -58,5 +60,6 @@ def train_mnist_vae(train_loader,
 
         train_loss /= 64
 
-        print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f}')
+        end = time.time()
+        print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f} ... time: {int(end - start)}')
         experiment.log_metric("train_loss", train_loss)
