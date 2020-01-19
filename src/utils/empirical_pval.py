@@ -35,3 +35,42 @@ def compute_empirical_pval(dt_train, model, dt_test):
         pvals.append(numpy.argwhere(kld_train >= kld_test[i]).shape[0]/all_values.shape[0]) 
 
     return(numpy.array(pvals), kld_train)
+
+
+def compute_pval_loaders(train_loader, test_loader, model):
+
+    model.eval()
+
+    # Encode train data
+    mu_train = []
+    logvar_train = []
+    for i, (x, y) in enumerate(train_loader):
+        _, z_mu, z_var, _ = model(x)
+        mu_train.append(z_mu.detach().numpy())
+        logvar_train.append(z_var.detach().numpy())
+    
+    mu_train = numpy.concatenate(mu_train)
+    logvar_train = numpy.concatenate(logvar_train)
+
+    # Encode test data
+    mu_test = []
+    logvar_test = []
+    for i, (x, y) in enumerate(test_loader):
+        _, z_mu, z_var, _ = model(x)
+        mu_test.append(z_mu.detach().numpy())
+        logvar_test.append(z_var.detach().numpy())
+    
+    mu_test = numpy.concatenate(mu_test)
+    logvar_test = numpy.concatenate(logvar_test)
+
+    # Compute KLD divergences for all train set
+    kld_train = compute_kl_divergence(mu_train, logvar_train)
+
+    # Compute p-values
+    kld_test = compute_kl_divergence(mu_test, logvar_test)
+    pvals = []
+    for i in range(kld_test.shape[0]):
+        all_values = numpy.concatenate((kld_train, kld_test[i].reshape(-1)))
+        pvals.append(numpy.argwhere(kld_train >= kld_test[i]).shape[0]/all_values.shape[0]) 
+
+    return(numpy.array(pvals), kld_train)

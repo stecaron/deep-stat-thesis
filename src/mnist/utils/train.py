@@ -30,6 +30,7 @@ def train_mnist_vae(train_loader,
                     n_epoch,
                     experiment,
                     beta,
+                    gpu=False,
                     loss_type="binary",
                     flatten=True):
     # set the train mode
@@ -42,6 +43,11 @@ def train_mnist_vae(train_loader,
             # reshape the data into [batch_size, 784]
             if flatten:
                 x = x.view(-1, 28 * 28)
+            
+            if gpu:
+                x = x.cuda()
+                y = y.cuda()
+
 
             criterion.zero_grad()
             reconstructed_x, z_mu, z_var, _ = model(x)
