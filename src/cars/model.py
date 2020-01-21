@@ -105,7 +105,7 @@ class CarsConvVAE(nn.Module):
 
 class SmallCarsConvVAE(nn.Module):
     def __init__(self, z_dim, image_channels=3, h_dim=12544):
-        super(CarsConvVAE, self).__init__()
+        super(SmallCarsConvVAE, self).__init__()
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False), # b, 16, 224, 224
             nn.BatchNorm2d(16),
