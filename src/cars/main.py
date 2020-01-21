@@ -26,9 +26,9 @@ PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs'
 # Define training parameters
 hyper_params = {
     "IMAGE_SIZE": (224, 224),
-    "GPU": False,
-    "NUM_WORKERS": 0,
-    "EPOCH": 10,
+    "GPU": True,
+    "NUM_WORKERS": 4,
+    "EPOCH": 50,
     "BATCH_SIZE": 128,
     "LR": 0.001,
     "TRAIN_SIZE": 1000,
@@ -94,6 +94,7 @@ else :
                     n_epoch=hyper_params["EPOCH"],
                     experiment=experiment,
                     beta=hyper_params["BETA"],
+                    gpu=hyper_params["GPU"],
                     loss_type="mse",
                     flatten=False)
 
