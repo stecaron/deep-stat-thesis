@@ -61,7 +61,7 @@ class DataGenerator(Dataset):
         with open(os.path.join(path, filename), 'rb') as f:
             image = numpy.array(load_image(f))[..., :3]
 
-        image = transform.resize(image, self.image_size)
+        image = transform.resize(image, self.image_size, mode='constant')
         img_tensor = self.transform(image).type(torch.FloatTensor)
         img_tensor.transpose_(1, 2)
 
