@@ -82,7 +82,7 @@ class CarsConvVAE(nn.Module):
 
     def bottleneck(self, h):
         mu, logvar = self.fc1_bn(self.fc1(h)), self.fc2_bn(self.fc2(h))
-        z = self.reparameterize(mu, logvar)
+        z = self.reparameterize(mu, logvar, self.gpu)
         return z, mu, logvar
 
     def encode(self, x):
