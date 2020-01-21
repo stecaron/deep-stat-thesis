@@ -45,6 +45,8 @@ def compute_pval_loaders(train_loader, test_loader, model, gpu=False):
     mu_train = []
     logvar_train = []
     for i, (x, y) in enumerate(train_loader):
+        if gpu:
+            x = x.cuda()
         _, z_mu, z_var, _ = model(x, gpu=gpu)
         mu_train.append(z_mu.detach().numpy())
         logvar_train.append(z_var.detach().numpy())
@@ -56,6 +58,8 @@ def compute_pval_loaders(train_loader, test_loader, model, gpu=False):
     mu_test = []
     logvar_test = []
     for i, (x, y) in enumerate(test_loader):
+        if gpu:
+            x = x.cuda()
         _, z_mu, z_var, _ = model(x, gpu=gpu)
         mu_test.append(z_mu.detach().numpy())
         logvar_test.append(z_var.detach().numpy())
