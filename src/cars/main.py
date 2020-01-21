@@ -9,6 +9,7 @@ from torchvision import transforms
 
 from src.cars.data import DataGenerator
 from src.cars.model import CarsConvVAE
+from src.cars.model import SmallCarsConvVAE
 from src.mnist.utils.train import train_mnist_vae
 from src.utils.empirical_pval import compute_pval_loaders
 from src.mnist.utils.stats import test_performances
@@ -82,7 +83,7 @@ test_loader = Data.DataLoader(dataset=test_data,
                               num_workers=hyper_params["NUM_WORKERS"])
 
 # Load model
-model = CarsConvVAE(z_dim=hyper_params["LATENT_DIM"])
+model = SmallCarsConvVAE(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
 if hyper_params["GPU"]:
