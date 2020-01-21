@@ -104,8 +104,9 @@ if not hyper_params["LOAD_MODEL"]:
     experiment.log_asset(file_data=f'./{hyper_params["MODEL_NAME"]}.h5', file_name='model.h5')
 
 # Compute p-values
-model.cpu()
-pval, _ = compute_pval_loaders(train_loader, test_loader, model)
+if not hyper_params["GPU"]:
+    model.cpu()
+pval, _ = compute_pval_loaders(train_loader, test_loader, model, gpu=hyper_params["GPU"])
 pval_order = numpy.argsort(pval)
 
 # Plot p-values
