@@ -26,12 +26,12 @@ PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs'
 # Define training parameters
 hyper_params = {
     "IMAGE_SIZE": (224, 224),
-    "GPU": True,
+    "GPU": False,
     "NUM_WORKERS": 4,
-    "EPOCH": 50,
+    "EPOCH": 3,
     "BATCH_SIZE": 128,
     "LR": 0.001,
-    "TRAIN_SIZE": 1000,
+    "TRAIN_SIZE": 5000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 100,
     "TEST_NOISE": 0.1,
@@ -78,7 +78,7 @@ test_loader = Data.DataLoader(dataset=test_data,
                               num_workers=hyper_params["NUM_WORKERS"])
 
 # Load model
-model = CarsConvVAE(z_dim=hyper_params["LATENT_DIM"], gpu=hyper_params["GPU"])
+model = CarsConvVAE(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
 if hyper_params["GPU"]:
@@ -86,7 +86,7 @@ if hyper_params["GPU"]:
 
 # Train the model
 if hyper_params["LOAD_MODEL"]:
-    model = torch.load(f'{hyper_params["LOAD_MODEL_NAME"]}.pt')
+    model.load_state_dict(torch.load(f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
 else :
     train_mnist_vae(train_loader,
                     model,
@@ -98,9 +98,10 @@ else :
                     loss_type="mse",
                     flatten=False)
 
-torch.save(model, f'{hyper_params["MODEL_NAME"]}.pt')
-model.save_weights(f'./{hyper_params["MODEL_NAME"]}.h5')
-experiment.log_asset(file_data=f'./{hyper_params["MODEL_NAME"]}.h5', file_name='model.h5')
+if not hyper_params["LOAD_MODEL"]:
+    torch.save(model, f'{hyper_params["MODEL_NAME"]}.pt')
+    model.save_weights(f'./{hyper_params["MODEL_NAME"]}.h5')
+    experiment.log_asset(file_data=f'./{hyper_params["MODEL_NAME"]}.h5', file_name='model.h5')
 
 # Compute p-values
 model.cpu()

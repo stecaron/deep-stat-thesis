@@ -52,7 +52,7 @@ def train_mnist_vae(train_loader,
 
 
             criterion.zero_grad()
-            reconstructed_x, z_mu, z_var, _ = model(x)
+            reconstructed_x, z_mu, z_var, _ = model(x, gpu=gpu)
             loss = calculate_loss(x, reconstructed_x, z_mu, z_var, loss_type=loss_type, beta=beta)
             loss.backward()
             train_loss += loss.item()

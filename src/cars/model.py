@@ -19,9 +19,8 @@ class Flatten(nn.Module):
 
 
 class CarsConvVAE(nn.Module):
-    def __init__(self, z_dim, image_channels=3, h_dim=6272, gpu=False):
+    def __init__(self, z_dim, image_channels=3, h_dim=6272):
         super(CarsConvVAE, self).__init__()
-        self.gpu = gpu
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False), # b, 16, 224, 224
             nn.BatchNorm2d(16),
@@ -80,14 +79,14 @@ class CarsConvVAE(nn.Module):
         z = mu + std * esp
         return z
 
-    def bottleneck(self, h):
+    def bottleneck(self, h, gpu):
         mu, logvar = self.fc1_bn(self.fc1(h)), self.fc2_bn(self.fc2(h))
-        z = self.reparameterize(mu, logvar, self.gpu)
+        z = self.reparameterize(mu, logvar, gpu)
         return z, mu, logvar
 
-    def encode(self, x):
+    def encode(self, x, gpu):
         h = self.encoder(x)
-        z, mu, logvar = self.bottleneck(h)
+        z, mu, logvar = self.bottleneck(h, gpu)
         return z, mu, logvar
 
     def decode(self, z):
@@ -95,8 +94,8 @@ class CarsConvVAE(nn.Module):
         z = self.decoder(z)
         return z
 
-    def forward(self, x):
-        z, mu, logvar = self.encode(x)
+    def forward(self, x, gpu=False):
+        z, mu, logvar = self.encode(x, gpu)
         generated_x = self.decode(z)
         return generated_x, mu, logvar, z
     
