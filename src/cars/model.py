@@ -19,8 +19,9 @@ class Flatten(nn.Module):
 
 
 class CarsConvVAE(nn.Module):
-    def __init__(self, z_dim, image_channels=3, h_dim=6272):
+    def __init__(self, z_dim, image_channels=3, h_dim=6272, gpu=False):
         super(CarsConvVAE, self).__init__()
+        self.gpu = gpu
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False), # b, 16, 224, 224
             nn.BatchNorm2d(16),
@@ -69,10 +70,13 @@ class CarsConvVAE(nn.Module):
             nn.ConvTranspose2d(16, 3, kernel_size=3, stride=1, padding=1, bias=False), # b, 3, 224, 224
             nn.Sigmoid())
     
-    def reparameterize(self, mu, logvar):
+    def reparameterize(self, mu, logvar, gpu):
         std = logvar.mul(0.5).exp_()
         # return torch.normal(mu, std)
         esp = torch.randn(*mu.size())
+        if gpu:
+            std = std.cuda()
+            esp = esp.cuda()
         z = mu + std * esp
         return z
 

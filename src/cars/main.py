@@ -78,7 +78,7 @@ test_loader = Data.DataLoader(dataset=test_data,
                               num_workers=hyper_params["NUM_WORKERS"])
 
 # Load model
-model = CarsConvVAE(z_dim=hyper_params["LATENT_DIM"])
+model = CarsConvVAE(z_dim=hyper_params["LATENT_DIM"], gpu=hyper_params["GPU"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
 if hyper_params["GPU"]:
