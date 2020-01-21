@@ -4,8 +4,8 @@ import torch
 def denormalize(x, mean, std, gpu):
 
     if gpu:
-        mean = mean.cuda()
-        std = std.cuda()
+        mean = torch.FloatTensor(mean).cuda()
+        std = torch.FloatTensor(std).cuda()
     
     x_new = x.new(*x.size())
     x_new[:, :, 0] = x[:, :, 0] * std[0] + mean[0]
