@@ -12,28 +12,32 @@ from src.cars.model import CarsConvVAE
 from src.mnist.utils.train import train_mnist_vae
 from src.utils.empirical_pval import compute_pval_loaders
 from src.mnist.utils.stats import test_performances
+from src.utils.denormalize import denormalize
+
 
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
-                        disabled=True)
+                        disabled=False)
 experiment.add_tag("cars_dogs")
 
 # General parameters
 PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_cars')
 PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs')
+MEAN = [0.485, 0.456, 0.406]
+STD = [0.229, 0.224, 0.225]
 
 # Define training parameters
 hyper_params = {
     "IMAGE_SIZE": (224, 224),
-    "GPU": False,
+    "GPU": True,
     "NUM_WORKERS": 4,
-    "EPOCH": 3,
+    "EPOCH": 40,
     "BATCH_SIZE": 128,
     "LR": 0.001,
     "TRAIN_SIZE": 5000,
     "TRAIN_NOISE": 0.01,
-    "TEST_SIZE": 100,
+    "TEST_SIZE": 300,
     "TEST_NOISE": 0.1,
     "LATENT_DIM": 5,  # latent distribution dimensions
     "ALPHA": 0.05,  # level of significance for the test
@@ -49,7 +53,7 @@ experiment.log_parameters(hyper_params)
 # Define some transformations
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(mean=MEAN, std=STD)
 ])
 
 # Load data
@@ -115,10 +119,8 @@ y_line = numpy.linspace(0, 1, len(test_data))
 y_adj = numpy.arange(0, len(test_data),
                      step=1) / len(test_data) * hyper_params["ALPHA"]
 zoom = int(0.2 * len(test_data))  # nb of points to zoom
-index = numpy.concatenate([
-    numpy.repeat(True, numpy.sum(test_data.labels == 1)),
-    numpy.repeat(False, numpy.sum(test_data.labels == 0))
-])
+
+index=test_data.labels
 
 fig, (ax1, ax2) = plt.subplots(2, 1)
 
@@ -151,12 +153,15 @@ experiment.log_metric("precision", precision)
 experiment.log_metric("recall", recall)
 
 # Show some examples
+
 fig, axs = plt.subplots(5, 5)
 fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    axs[i].imshow(test_data[pval_order[i]][0].transpose_(0,2).numpy())
+    image = test_data[pval_order[i]][0].transpose_(0,2)
+    image = denormalize(image, MEAN, STD, gpu=hyper_params["GPU"]).numpy()
+    axs[i].imshow(image)
     axs[i].axis('off')
 
 experiment.log_figure(figure_name="rejetcted_observations", figure=fig, overwrite=True)
@@ -167,7 +172,9 @@ fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    axs[i].imshow(test_data[pval_order[int(0.75 * len(pval)) + i]][0].transpose_(0,2).numpy())
+    image = test_data[pval_order[int(0.75 * len(pval)) + i]][0].transpose_(0,2)
+    image = denormalize(image, MEAN, STD, gpu=hyper_params["GPU"]).numpy()
+    axs[i].imshow(image)
     axs[i].axis('off')
 
 experiment.log_figure(figure_name="better_observations", figure=fig, overwrite=True)
