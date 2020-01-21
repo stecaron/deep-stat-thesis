@@ -27,10 +27,11 @@ PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs'
 hyper_params = {
     "IMAGE_SIZE": (224, 224),
     "GPU": False,
+    "NUM_WORKERS": 0,
     "EPOCH": 10,
-    "BATCH_SIZE": 64,
+    "BATCH_SIZE": 128,
     "LR": 0.001,
-    "TRAIN_SIZE": 500,
+    "TRAIN_SIZE": 1000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 100,
     "TEST_NOISE": 0.1,
@@ -48,7 +49,7 @@ experiment.log_parameters(hyper_params)
 # Define some transformations
 transform = transforms.Compose([
     transforms.ToTensor(),
-    #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 # Load data
@@ -68,7 +69,8 @@ test_data = DataGenerator(PATH_DATA_DOGS,
 
 train_loader = Data.DataLoader(dataset=train_data,
                                batch_size=hyper_params["BATCH_SIZE"],
-                               shuffle=True)
+                               shuffle=True,
+                               num_workers=hyper_params["NUM_WORKERS"])
 
 test_loader = Data.DataLoader(dataset=test_data,
                               batch_size=len(test_data),

@@ -58,7 +58,7 @@ def train_mnist_vae(train_loader,
             train_loss += loss.item()
             criterion.step()
 
-        train_loss /= 64
+        train_loss /= train_loader.batch_size
 
         end = time.time()
         print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f} ... time: {int(end - start)}')
