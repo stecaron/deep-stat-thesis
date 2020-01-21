@@ -74,7 +74,8 @@ train_loader = Data.DataLoader(dataset=train_data,
 
 test_loader = Data.DataLoader(dataset=test_data,
                               batch_size=len(test_data),
-                              shuffle=False)
+                              shuffle=False,
+                              num_workers=hyper_params["NUM_WORKERS"])
 
 # Load model
 model = CarsConvVAE(z_dim=hyper_params["LATENT_DIM"])
