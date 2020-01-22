@@ -100,7 +100,7 @@ else :
                     experiment=experiment,
                     beta=hyper_params["BETA"],
                     gpu=hyper_params["GPU"],
-                    loss_type="mse",
+                    loss_type="binary",
                     flatten=False)
 
 if not hyper_params["LOAD_MODEL"]:
