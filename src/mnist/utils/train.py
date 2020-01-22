@@ -1,5 +1,6 @@
 import numpy
 import time
+import torch
 
 from src.mnist.utils.loss_vae import calculate_loss
 
@@ -40,7 +41,6 @@ def train_mnist_vae(train_loader,
 
     for epoch in range(n_epoch):
         train_loss = 0.0
-        best_loss = 0.0
 
         start = time.time()
         for i, (x, y) in enumerate(train_loader):
@@ -61,7 +61,7 @@ def train_mnist_vae(train_loader,
             criterion.step()
 
         train_loss /= len(train_loader)
-        KLD_perc = numpy.around((KLD / loss).numpy(), 2)
+        KLD_perc = numpy.around((KLD / loss).cpu().detach().numpy(), 2)
 
         end = time.time()
         print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f} ... time: {int(end - start)}')

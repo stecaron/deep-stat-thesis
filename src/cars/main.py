@@ -34,16 +34,16 @@ hyper_params = {
     "IMAGE_SIZE": (224, 224),
     "GPU": True,
     "NUM_WORKERS": 4,
-    "EPOCH": 40,
+    "EPOCH": 20,
     "BATCH_SIZE": 128,
     "LR": 0.001,
     "TRAIN_SIZE": 5000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 300,
     "TEST_NOISE": 0.1,
-    "LATENT_DIM": 5,  # latent distribution dimensions
+    "LATENT_DIM": 150,  # latent distribution dimensions
     "ALPHA": 0.05,  # level of significance for the test
-    "BETA": 1,  # hyperparameter to weight KLD vs RCL
+    "BETA": 0.0001,  # hyperparameter to weight KLD vs RCL
     "MODEL_NAME": "vae_model_cars",
     "LOAD_MODEL": False,
     "LOAD_MODEL_NAME": "vae_model_cars"
