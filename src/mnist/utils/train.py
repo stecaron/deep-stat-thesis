@@ -39,7 +39,7 @@ def train_mnist_vae(train_loader,
     model.train()
 
     for epoch in range(n_epoch):
-        train_loss = 0
+        train_loss = 0.0
         best_loss = 0.0
 
         start = time.time()
@@ -66,6 +66,7 @@ def train_mnist_vae(train_loader,
         end = time.time()
         print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f} ... time: {int(end - start)}')
         experiment.log_metric("train_loss", train_loss)
+        experiment.log_metric("kld_percentage", KLD_perc)
 
         if epoch == 0:
             best_loss = train_loss
@@ -73,4 +74,4 @@ def train_mnist_vae(train_loader,
         if train_loss <= best_loss:
             model.cpu()
             torch.save(model, f'{model_name}.pt')
-            model.save_weights(f'./{model_name]}.h5')
+            model.save_weights(f'./{model_name}.h5')

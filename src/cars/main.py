@@ -101,7 +101,7 @@ train_mnist_vae(train_loader,
                 beta=hyper_params["BETA"],
                 model_name=hyper_params["MODEL_NAME"],
                 gpu=hyper_params["GPU"],
-                loss_type="binary",
+                loss_type="mse",
                 flatten=False)
 
 # Compute p-values
