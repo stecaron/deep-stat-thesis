@@ -15,7 +15,6 @@ from src.utils.empirical_pval import compute_pval_loaders
 from src.mnist.utils.stats import test_performances
 from src.utils.denormalize import denormalize
 
-
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
@@ -23,8 +22,10 @@ experiment = Experiment(project_name="deep-stats-thesis",
 experiment.add_tag("cars_dogs")
 
 # General parameters
-PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_cars')
-PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs')
+PATH_DATA_CARS = os.path.join(os.path.expanduser("~"),
+                              'Downloads/stanford_cars')
+PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"),
+                              'Downloads/stanford_dogs')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
 
@@ -52,10 +53,9 @@ hyper_params = {
 experiment.log_parameters(hyper_params)
 
 # Define some transformations
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=MEAN, std=STD)
-])
+transform = transforms.Compose(
+    [transforms.ToTensor(),
+     transforms.Normalize(mean=MEAN, std=STD)])
 
 # Load data
 train_data = DataGenerator(PATH_DATA_DOGS,
@@ -92,26 +92,25 @@ if hyper_params["GPU"]:
 # Train the model
 if hyper_params["LOAD_MODEL"]:
     model.load_state_dict(torch.load(f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
-else :
-    train_mnist_vae(train_loader,
-                    model,
-                    criterion=optimizer,
-                    n_epoch=hyper_params["EPOCH"],
-                    experiment=experiment,
-                    beta=hyper_params["BETA"],
-                    gpu=hyper_params["GPU"],
-                    loss_type="binary",
-                    flatten=False)
 
-if not hyper_params["LOAD_MODEL"]:
-    torch.save(model, f'{hyper_params["MODEL_NAME"]}.pt')
-    model.save_weights(f'./{hyper_params["MODEL_NAME"]}.h5')
-    experiment.log_asset(file_data=f'./{hyper_params["MODEL_NAME"]}.h5', file_name='model.h5')
+train_mnist_vae(train_loader,
+                model,
+                criterion=optimizer,
+                n_epoch=hyper_params["EPOCH"],
+                experiment=experiment,
+                beta=hyper_params["BETA"],
+                model_name=hyper_params["MODEL_NAME"],
+                gpu=hyper_params["GPU"],
+                loss_type="binary",
+                flatten=False)
 
 # Compute p-values
 if not hyper_params["GPU"]:
     model.cpu()
-pval, _ = compute_pval_loaders(train_loader, test_loader, model, gpu=hyper_params["GPU"])
+pval, _ = compute_pval_loaders(train_loader,
+                               test_loader,
+                               model,
+                               gpu=hyper_params["GPU"])
 pval_order = numpy.argsort(pval)
 
 # Plot p-values
@@ -121,7 +120,7 @@ y_adj = numpy.arange(0, len(test_data),
                      step=1) / len(test_data) * hyper_params["ALPHA"]
 zoom = int(0.2 * len(test_data))  # nb of points to zoom
 
-index=test_data.labels
+index = test_data.labels
 
 fig, (ax1, ax2) = plt.subplots(2, 1)
 
@@ -143,7 +142,9 @@ ax2.plot(x_line[0:zoom], y_adj[0:zoom], color="red")
 ax2.set_title('Zoomed in')
 ax2.set_xticklabels([])
 
-experiment.log_figure(figure_name="empirical_test_hypothesis", figure=fig, overwrite=True)
+experiment.log_figure(figure_name="empirical_test_hypothesis",
+                      figure=fig,
+                      overwrite=True)
 plt.show()
 
 # Compute some stats
@@ -160,12 +161,14 @@ fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    image = test_data[pval_order[i]][0].transpose_(0,2)
+    image = test_data[pval_order[i]][0].transpose_(0, 2)
     image = denormalize(image, MEAN, STD, gpu=hyper_params["GPU"]).numpy()
     axs[i].imshow(image)
     axs[i].axis('off')
 
-experiment.log_figure(figure_name="rejetcted_observations", figure=fig, overwrite=True)
+experiment.log_figure(figure_name="rejetcted_observations",
+                      figure=fig,
+                      overwrite=True)
 plt.show()
 
 fig, axs = plt.subplots(5, 5)
@@ -173,10 +176,13 @@ fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    image = test_data[pval_order[int(0.75 * len(pval)) + i]][0].transpose_(0,2)
+    image = test_data[pval_order[int(0.75 * len(pval)) + i]][0].transpose_(
+        0, 2)
     image = denormalize(image, MEAN, STD, gpu=hyper_params["GPU"]).numpy()
     axs[i].imshow(image)
     axs[i].axis('off')
 
-experiment.log_figure(figure_name="better_observations", figure=fig, overwrite=True)
+experiment.log_figure(figure_name="better_observations",
+                      figure=fig,
+                      overwrite=True)
 plt.show()

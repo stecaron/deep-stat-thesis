@@ -31,6 +31,7 @@ def train_mnist_vae(train_loader,
                     n_epoch,
                     experiment,
                     beta,
+                    model_name,
                     gpu=False,
                     loss_type="binary",
                     flatten=True):
@@ -39,6 +40,7 @@ def train_mnist_vae(train_loader,
 
     for epoch in range(n_epoch):
         train_loss = 0
+        best_loss = 0.0
 
         start = time.time()
         for i, (x, y) in enumerate(train_loader):
@@ -47,19 +49,28 @@ def train_mnist_vae(train_loader,
                 x = x.view(-1, 28 * 28)
             
             if gpu:
+                model = model.cuda()
                 x = x.cuda()
                 y = y.cuda()
 
-
             criterion.zero_grad()
             reconstructed_x, z_mu, z_var, _ = model(x, gpu=gpu)
-            loss = calculate_loss(x, reconstructed_x, z_mu, z_var, loss_type=loss_type, beta=beta)
+            loss, KLD = calculate_loss(x, reconstructed_x, z_mu, z_var, loss_type=loss_type, beta=beta)
             loss.backward()
             train_loss += loss.item()
             criterion.step()
 
         train_loss /= len(train_loader)
+        KLD_perc = numpy.around((KLD / loss).numpy(), 2)
 
         end = time.time()
         print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f} ... time: {int(end - start)}')
         experiment.log_metric("train_loss", train_loss)
+
+        if epoch == 0:
+            best_loss = train_loss
+
+        if train_loss <= best_loss:
+            model.cpu()
+            torch.save(model, f'{model_name}.pt')
+            model.save_weights(f'./{model_name]}.h5')
