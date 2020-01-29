@@ -47,19 +47,19 @@ def train_mnist_vae(train_loader,
             # reshape the data into [batch_size, 784]
             if flatten:
                 x = x.view(-1, 28 * 28)
-            
+
             model.to(device)
             x = x.to(device)
             y = y.to(device)
 
             criterion.zero_grad()
-            reconstructed_x, z_mu, z_var, _ = model(x, gpu=gpu)
+            reconstructed_x, z_mu, z_var, _ = model(x, device=device)
             loss, KLD = calculate_loss(x, reconstructed_x, z_mu, z_var, loss_type=loss_type, beta=beta)
             loss.backward()
             train_loss += loss.item()
             criterion.step()
 
-        train_loss /= len(train_loader)
+        train_loss = train_loss / len(train_loader) * train_loader.batch_size
         KLD_perc = numpy.around((KLD / loss).cpu().detach().numpy(), 2)
 
         end = time.time()

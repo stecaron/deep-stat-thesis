@@ -1,12 +1,11 @@
 import torch
 
 
-def denormalize(x, mean, std, gpu):
+def denormalize(x, mean, std, device):
 
-    if gpu:
-        mean = torch.FloatTensor(mean).cuda()
-        std = torch.FloatTensor(std).cuda()
-    
+    mean = torch.FloatTensor(mean).to(device)
+    std = torch.FloatTensor(std).to(device)
+
     x_new = x.new(*x.size())
     x_new[:, :, 0] = x[:, :, 0] * std[0] + mean[0]
     x_new[:, :, 1] = x[:, :, 1] * std[1] + mean[1]

@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from skimage import transform
 from sklearn.model_selection import train_test_split
+from imgaug import augmenters as iaa
 
 
 def load_image(file):
@@ -30,7 +31,7 @@ def define_filenames(path_dogs, path_cars, train_size, test_size,
                                                        1, len(all_cars_files)),
                                                    train_size=train_cars_size,
                                                    test_size=test_cars_size)
-    
+
     train_dogs, test_dogs, _, _ = train_test_split(all_dogs_files,
                                                    numpy.repeat(
                                                        1, len(all_dogs_files)),
@@ -42,7 +43,7 @@ def define_filenames(path_dogs, path_cars, train_size, test_size,
     train_dogs = numpy.array([os.path.join(path_dogs, x) for x in train_dogs])
     test_dogs = numpy.array([os.path.join(path_dogs, x) for x in test_dogs])
 
-    
+
     x_train = numpy.concatenate((train_cars, train_dogs))
     x_test = numpy.concatenate((test_cars, test_dogs))
     y_train = numpy.concatenate((numpy.repeat(0, len(train_cars)), numpy.repeat(1, len(train_dogs))))
@@ -70,7 +71,15 @@ class DataGenerator(Dataset):
         with open(filename, 'rb') as f:
             image = numpy.array(load_image(f))[..., :3]
 
-        image = transform.resize(image, self.image_size, mode='constant')
+        #image = numpy.swapaxes(image, 0, 2)
+        #image = numpy.swapaxes(image, 1, 2)
+
+        #seq = iaa.Sequential([
+        #    iaa.Resize((224, 224))
+        #])
+
+        image = transform.resize(image, self.image_size)
+        #image = seq(images=image)
         img_tensor = self.transform(image).type(torch.FloatTensor)
         img_tensor.transpose_(1, 2)
 

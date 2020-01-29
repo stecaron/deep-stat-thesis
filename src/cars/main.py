@@ -8,8 +8,7 @@ import matplotlib.pyplot as plt
 from torchvision import transforms
 
 from src.cars.data import DataGenerator, define_filenames
-from src.cars.model import CarsConvVAE
-from src.cars.model import SmallCarsConvVAE
+from src.cars.model import CarsConvVAE, SmallCarsConvVAE, SmallCarsConvVAE128
 from src.mnist.utils.train import train_mnist_vae
 from src.utils.empirical_pval import compute_pval_loaders
 from src.mnist.utils.stats import test_performances
@@ -18,32 +17,32 @@ from src.utils.denormalize import denormalize
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
-                        disabled=True)
+                        disabled=False)
 experiment.add_tag("cars_dogs")
 
 # General parameters
 PATH_DATA_CARS = os.path.join(os.path.expanduser("~"),
-                              'Downloads/stanford_cars')
+                              'data/stanford_cars')
 PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"),
-                              'Downloads/stanford_dogs')
+                              'data/stanford_dogs')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 # Define training parameters
 hyper_params = {
-    "IMAGE_SIZE": (224, 224),
-    "NUM_WORKERS": 4,
+    "IMAGE_SIZE": (128, 128),
+    "NUM_WORKERS": 5,
     "EPOCH": 20,
-    "BATCH_SIZE": 128,
+    "BATCH_SIZE": 32,
     "LR": 0.001,
-    "TRAIN_SIZE": 5000,
+    "TRAIN_SIZE": 10000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 300,
     "TEST_NOISE": 0.1,
-    "LATENT_DIM": 150,  # latent distribution dimensions
+    "LATENT_DIM": 500,  # latent distribution dimensions
     "ALPHA": 0.05,  # level of significance for the test
-    "BETA": 0.0001,  # hyperparameter to weight KLD vs RCL
+    "BETA": 1,  # hyperparameter to weight KLD vs RCL
     "MODEL_NAME": "vae_model_cars",
     "LOAD_MODEL": False,
     "LOAD_MODEL_NAME": "vae_model_cars"
@@ -84,7 +83,7 @@ test_loader = Data.DataLoader(dataset=test_data,
                               num_workers=hyper_params["NUM_WORKERS"])
 
 # Load model
-model = SmallCarsConvVAE(z_dim=hyper_params["LATENT_DIM"])
+model = SmallCarsConvVAE128(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
 model.to(device)
@@ -101,7 +100,7 @@ train_mnist_vae(train_loader,
                 beta=hyper_params["BETA"],
                 model_name=hyper_params["MODEL_NAME"],
                 device=device,
-                loss_type="mse",
+                loss_type="binary",
                 flatten=False)
 
 # Compute p-values
@@ -161,7 +160,7 @@ axs = axs.ravel()
 
 for i in range(25):
     image = test_data[pval_order[i]][0].transpose_(0, 2)
-    image = denormalize(image, MEAN, STD, gpu=hyper_params["GPU"]).numpy()
+    image = denormalize(image, MEAN, STD, device=device).numpy()
     axs[i].imshow(image)
     axs[i].axis('off')
 
@@ -177,7 +176,7 @@ axs = axs.ravel()
 for i in range(25):
     image = test_data[pval_order[int(0.75 * len(pval)) + i]][0].transpose_(
         0, 2)
-    image = denormalize(image, MEAN, STD, gpu=hyper_params["GPU"]).numpy()
+    image = denormalize(image, MEAN, STD, device=device).numpy()
     axs[i].imshow(image)
     axs[i].axis('off')
 
