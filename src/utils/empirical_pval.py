@@ -37,7 +37,7 @@ def compute_empirical_pval(dt_train, model, dt_test):
     return(numpy.array(pvals), kld_train)
 
 
-def compute_pval_loaders(train_loader, test_loader, model, gpu=False):
+def compute_pval_loaders(train_loader, test_loader, model, device):
 
     model.eval()
 
@@ -45,9 +45,8 @@ def compute_pval_loaders(train_loader, test_loader, model, gpu=False):
     mu_train = []
     logvar_train = []
     for i, (x, y) in enumerate(train_loader):
-        if gpu:
-            x = x.cuda()
-        _, z_mu, z_var, _ = model(x, gpu=gpu)
+        x = x.to(device)
+        _, z_mu, z_var, _ = model(x, device=device)
         z_mu = z_mu.cpu()
         z_var = z_var.cpu()
         mu_train.append(z_mu.detach().numpy())
@@ -60,9 +59,8 @@ def compute_pval_loaders(train_loader, test_loader, model, gpu=False):
     mu_test = []
     logvar_test = []
     for i, (x, y) in enumerate(test_loader):
-        if gpu:
-            x = x.cuda()
-        _, z_mu, z_var, _ = model(x, gpu=gpu)
+        x = x.to(device)
+        _, z_mu, z_var, _ = model(x, device=device)
         z_mu = z_mu.cpu()
         z_var = z_var.cpu()
         mu_test.append(z_mu.detach().numpy())

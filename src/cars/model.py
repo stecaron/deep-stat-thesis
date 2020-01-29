@@ -142,13 +142,13 @@ class SmallCarsConvVAE(nn.Module):
             nn.ConvTranspose2d(16, 3, kernel_size=3, stride=1, padding=1, bias=False), # b, 3, 224, 224
             nn.Sigmoid())
     
-    def reparameterize(self, mu, logvar, gpu):
+    def reparameterize(self, mu, logvar, device):
         std = logvar.mul(0.5).exp_()
         # return torch.normal(mu, std)
         esp = torch.randn(*mu.size())
-        if gpu:
-            std = std.cuda()
-            esp = esp.cuda()
+        std = std.to(device)
+        esp = esp.cuda(device)
+        
         z = mu + std * esp
         return z
 
@@ -157,9 +157,9 @@ class SmallCarsConvVAE(nn.Module):
         z = self.reparameterize(mu, logvar, gpu)
         return z, mu, logvar
 
-    def encode(self, x, gpu):
+    def encode(self, x, device):
         h = self.encoder(x)
-        z, mu, logvar = self.bottleneck(h, gpu)
+        z, mu, logvar = self.bottleneck(h, device)
         return z, mu, logvar
 
     def decode(self, z):
@@ -167,8 +167,8 @@ class SmallCarsConvVAE(nn.Module):
         z = self.decoder(z)
         return z
 
-    def forward(self, x, gpu=False):
-        z, mu, logvar = self.encode(x, gpu)
+    def forward(self, x, device):
+        z, mu, logvar = self.encode(x, device)
         generated_x = self.decode(z)
         return generated_x, mu, logvar, z
     

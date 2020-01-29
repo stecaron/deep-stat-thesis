@@ -7,7 +7,7 @@ import torch.utils.data as Data
 import matplotlib.pyplot as plt
 from torchvision import transforms
 
-from src.cars.data import DataGenerator
+from src.cars.data import DataGenerator, define_filenames
 from src.cars.model import CarsConvVAE
 from src.cars.model import SmallCarsConvVAE
 from src.mnist.utils.train import train_mnist_vae
@@ -18,7 +18,7 @@ from src.utils.denormalize import denormalize
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
-                        disabled=False)
+                        disabled=True)
 experiment.add_tag("cars_dogs")
 
 # General parameters
@@ -28,11 +28,11 @@ PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"),
                               'Downloads/stanford_dogs')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Define training parameters
 hyper_params = {
     "IMAGE_SIZE": (224, 224),
-    "GPU": True,
     "NUM_WORKERS": 4,
     "EPOCH": 20,
     "BATCH_SIZE": 128,
@@ -58,17 +58,18 @@ transform = transforms.Compose(
      transforms.Normalize(mean=MEAN, std=STD)])
 
 # Load data
-train_data = DataGenerator(PATH_DATA_DOGS,
-                           PATH_DATA_CARS,
-                           size=hyper_params["TRAIN_SIZE"],
-                           noise_perc=hyper_params["TRAIN_NOISE"],
+train_x_files, test_x_files, train_y, test_y = define_filenames(
+    PATH_DATA_DOGS, PATH_DATA_CARS, hyper_params["TRAIN_SIZE"],
+    hyper_params["TEST_SIZE"], hyper_params["TRAIN_NOISE"],
+    hyper_params["TEST_NOISE"])
+
+train_data = DataGenerator(train_x_files,
+                           train_y,
                            transform=transform,
                            image_size=hyper_params["IMAGE_SIZE"])
 
-test_data = DataGenerator(PATH_DATA_DOGS,
-                          PATH_DATA_CARS,
-                          size=hyper_params["TEST_SIZE"],
-                          noise_perc=hyper_params["TEST_NOISE"],
+test_data = DataGenerator(test_x_files,
+                          test_y,
                           transform=transform,
                           image_size=hyper_params["IMAGE_SIZE"])
 
@@ -86,8 +87,7 @@ test_loader = Data.DataLoader(dataset=test_data,
 model = SmallCarsConvVAE(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
-if hyper_params["GPU"]:
-    model.cuda()
+model.to(device)
 
 # Train the model
 if hyper_params["LOAD_MODEL"]:
@@ -100,17 +100,16 @@ train_mnist_vae(train_loader,
                 experiment=experiment,
                 beta=hyper_params["BETA"],
                 model_name=hyper_params["MODEL_NAME"],
-                gpu=hyper_params["GPU"],
+                device=device,
                 loss_type="mse",
                 flatten=False)
 
 # Compute p-values
-if not hyper_params["GPU"]:
-    model.cpu()
+model.to(device)
 pval, _ = compute_pval_loaders(train_loader,
                                test_loader,
                                model,
-                               gpu=hyper_params["GPU"])
+                               device=device)
 pval_order = numpy.argsort(pval)
 
 # Plot p-values
