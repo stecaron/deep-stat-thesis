@@ -11,3 +11,9 @@ __pycache__/
 
 # Hide the .gitmodules file (hide the intact adress)
 .gitmodules
+
+# Ignore latex stuffs
+*.aux
+*.log
+*.toc
+*.synctex.gz

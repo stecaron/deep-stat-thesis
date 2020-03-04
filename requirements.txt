@@ -1,6 +1,11 @@
-sklearn
-numpy
+Keras
+scipy
+torchvision
 matplotlib
+scikit_image
 pandas
-poutyne
+comet_ml
 torch
+numpy
+Pillow
+scikit_learn

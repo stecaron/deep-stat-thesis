@@ -20,17 +20,17 @@ knitr::opts_chunk$set(echo = FALSE, fig.pos= "h")
 
 # Introduction to autoencoders
 
-An autoencoder is a neural network technique that aims to learn an input and output it back as its output [@Goodfellow-et-al-2016]. To achieve this objective, the autoencoder has 2 components: an **encoder** and a **decoder**. The encoder receives an input $x$ and and converts it to a hidden representation $z$. The decoder receives a representation $z$ and decodes it back to retrieve as much as possible the input $x$. Historically, autoencoders were known as a dimensionnalty reduction method, but it has now more applications by learning latent variables useful in generative modelling and other fields.
+An autoencoder is an unsupervised neural network technique that aims to learn an efficient intermediate representation of an input [@Goodfellow-et-al-2016]. To achieve this objective, the autoencoder has 2 components: an **encoder** and a **decoder**. The encoder receives an input $x$ and and converts it to a hidden representation $z$. The decoder receives a representation $z$ and decodes it back to retrieve as much as possible the input $x$. Historically, autoencoders were known as a dimensionnalty reduction method, but it has now more applications by learning latent variables useful in generative modelling and other fields.
 
 ## Architecture
 
-As explained in the introduction, autoencoders are divided in two parts: the encoder and the decoder. The encoder compresses the information into a given representation and the decoder decompresses it back to its original format (see figure \@ref(fig:ex1)).
+As explained in the introduction, autoencoders are divided in two parts: the encoder and the decoder. The encoder transforms the information into a given representation and the decoder reconstructs it back to its original format (see figure \@ref(fig:ex1)).
 
 ```{r ex1, fig.cap="Autoencoders structure example.", out.width = '60%', fig.align='center', fig.pos=""}
 knitr::include_graphics("images/autoencoder-structure.png")
 ```
 
-The hidden representation (or latent representation) is often smaller because of the structure of the layers between the input and that representation. Autoencoders that have a smaller hidden representation than its inputs are called *undercomplete*. In those cases, the constraints on $z$ force the network to learn the more important features. It could be applied to feedforward networks or to convolutional networks. We are typically interested in that hidden representation, in comparison to the output of the decoder (the reconstructured input) which may sound useless.
+In most cases, the hidden representation (or latent representation) is smaller because of the structure of the layers between the input and that representation. Autoencoders that have a smaller hidden representation than its inputs are called *undercomplete*. In those cases, the constraints on $z$ force the network to learn the more important features. It could be applied to feedforward networks or to convolutional networks. We are typically interested in that hidden representation, while the decoder is more often than not discarded.
 
 
 ## Optimization
@@ -41,23 +41,29 @@ $$
 L(x, p_\phi{\{q_\theta(x)\}})
 $$
 
-where $q(x, \theta)$ is the encoder and $p(z,\phi)$ is the decoder function. The loss generally includes another component $\Omega(x)$ that acts as a regularizer (we'll see in the next sections). The regularization is often essential to prevent the network to "copy/paste" examples of the training set. Those situations can occur even more when the hidden representation is equal or greater than the inputs (*overcomplete*). The minimization of this loss function is done by gradient descent. For instance, the encoder parameters are gradually updated by:
+where $q(x, \theta)$ is the encoder and $p(z,\phi)$ is the decoder function. The loss generally includes another component $\Omega(x)$ that acts as a regularizer. In that case, the loss is now given by:
+
+$$
+L(x, p_\phi{\{q_\theta(x)\}}) + \Omega(x)
+$$
+
+The regularization is often essential to prevent the network to "copy/paste" examples of the training set. There are multiple ways to introduce regularization in the model. In fact, it can be directly on the input, on the parameters to learn or even on the latent representation (we'll cover different types of regularization applied to autoencoders in the next sections). Overfitting situations can occur even more when the hidden representation is equal or greater than the inputs (*overcomplete*). The minimization of the loss function is done by gradient descent. For instance, the encoder and decoder parameters are gradually updated by:
 
 \begin{equation} \label{optim}
-\theta \leftarrow \theta-\epsilon*\frac{\partial L}{\partial\theta}
+\Theta \leftarrow \Theta-\epsilon*\frac{\partial L}{\partial\Theta}
 \end{equation}
 
-where $\epsilon$ is a learning weight that aims to control the size of the learning steps.
+where $\epsilon$ is a learning weight that aims to control the size of the learning steps and $\Theta : \{\theta, \phi\}$ includes both encoder and decoder parameters.
 
 ## Example
 
 Let's illustrate the high-level concepts presented in the last 2 sections with an overly simplistic example. We have a input $X$ with $p=2$ features and 10 observations. We want to encode those 2 features in one single features using an basic autoencoder with 1 hidden layer. In summary, our autoencoder has 3 layers (input layer, hidden layer and output layer). We also choose a sigmoid activation function for our hidden layer and a linear activation function for our ouput layer (those choices are arbitrary).
 
 ```{r ex2, fig.cap="Autoencoders structure example.", out.width = '60%', fig.align='center', fig.pos=""}
-knitr::include_graphics("images/example-toy-ae.png")
+knitr::include_graphics("images/example-toy-ae.pdf")
 ```
 
-The encoder function (that transforms $x$ to $z$) could be expressed that way:
+The encoder function (that transforms $x$ to $z$) is expressed as:
 
 $$
 q_{\theta}(x)=h\big(x_1*w_{1,1} + x_2*w_{1,2} + b_1\big)
@@ -69,23 +75,26 @@ $$
 q_{\theta}(X)=h\big(X*\boldsymbol w_1 + b_1\big)
 $$
 
-In the same fashion, the decoder could be expressed as:
+where $X = [\boldsymbol x_1, \boldsymbol x_2]$. For one single observation, we could defined $X^{(i)} = [x_{1}^{(i)}, x_{2}^{(i)}]$. The vector of weights $\boldsymbol w_1$ is defined as $\boldsymbol w_1 = [w_{1,1}, w_{1,2}]$.
+
+In the same fashion, the decoder is expressed as:
 
 \begin{align*}
   p_{\phi}(Z)=
   \begin{cases}
-    p_{\phi}^1(z) = f(z*w_{2,1}+b_2) \\
-    p_{\phi}^2(z) = f(z*w_{2,2}+b_2)
+    p_{\phi}^1(z) = z*w_{2,1}+b_2 \\
+    p_{\phi}^2(z) = z*w_{2,2}+b_2
   \end{cases}
 \end{align*}
 
-where $f(x)$ is a linear function in the form of $f(x)=x$. The parameters $\phi$ that need to be optimized are $w_{2,1}, w_{2,2}$ and $b_2$. We can also use the matrix notation (which is more convinient in that case):
+The parameters $\phi$ that need to be optimized are $w_{2,1}, w_{2,2}$ and $b_2$. We can also use the matrix notation (which is more convinient in that case):
 
 \begin{gather*}
   p_{\phi}(Z)=h\big(Z*\boldsymbol w_2 + b_2\big)=\hat{X} \\
   p_{\phi}: \rm I\!R \rightarrow \rm I\!R^2
 \end{gather*}
 
+where $\boldsymbol w_2 = [w_{2,1}, w_{2,2}]$. 
 
 To optimize those parameters $\theta$ and $\phi$, we need to define a loss function (see equation \@ref(perte1)). Let's say we want to minimize the reconstruction error only, we can define our loss as:
 
@@ -104,40 +113,40 @@ Once we have a loss function, we can optimize the parameters of the encoder/deco
 
 # Types of autoencoders
 
-In the previous sections, we introduced the general idea behind the autoencoders. However, there are several types of autoencoders and each has their own strengths in different areas. They differ in their architecture and their optimization process, but at the end, they all consist in unsupervised methods that learn latent structure of the data.
+In the previous sections, we introduced the general idea behind the autoencoders. However, there are several types of autoencoders and each has it own strengths and weakenesses. They differ in their architecture and optimization process, but in the end, they all consist in unsupervised methods that learn latent structure of the data.
 
 ## Origins of autoencoders
 
-The origins of autoencoders were known in the 80s and introduced by Hinton and the PDP Lab in Stanford [@Rumelhart-1986]. In this paper, they essentially tried to learn a hidden representation using the input as the output of the model.
+The origins of autoencoders were known in the 80s and introduced by [@Rumelhart-1986]. In their work, they essentially learn a hidden representation using the input as the output of the model.
 
 ## Deep autoencoders
 
-Once the fundamental idea of autoencoders has been developped, a new generation of autoencoders came up more recently and where multiples hidden layers were stacked and trained bottom up to form what we call "deep autoencoders" [@HintonSalakhutdinov2006b]. In the following years, many variants have been applied to autoencoders, mainly regarding the regularization component, to be able to generalize better and better and learn useful representation and structure behind the data.  
+With the resurgence of neural network and the introduction of deep neural network at the beginning of 2000's, a new generation of autoencoders with multiples hidden layers were introduced as "deep autoencoders", by [@HintonSalakhutdinov2006b]. In the following years, many variants have been applied to autoencoders, mainly regarding the regularization component, to be able to better generalize useful representation and structure of the data.  
 
 ## Sparse autoencoders
 
-One way of learning useful representations using autoencoder is to impose a constraint of **sparsity** in the hidden representation [@ranzato-2007]. A sparse autoencoder is basically an autoencoder that has a sparsity penalty in the loss criterion:
+One way of learning useful representations using autoencoder is to impose a constraint of **sparsity** in the hidden representation [@ranzato-2007]. A sparse autoencoder is basically an autoencoder that has a sparsity component in the loss criterion:
 
 $$
 L(x, p_\phi\{q_\theta(x)\}) + \Omega(q_\theta(x))
 $$
 
-where $z$ is the hidden representation (or the output of the encoder). That sparsity penalty ($\Omega(z)$) will pull some neurons output values towards zero in the hidden layer, making them "inactive" [@Ng-2011]. That regularization will prevent overfitting and prevent the network to learn by heart every input.
+where $z$ is the hidden representation (or the output of the encoder). That sparsity component ($\Omega(z)$) will pull some neurons output values towards zero in the hidden layer, making them "inactive" [@Ng-2011]. That regularization will prevent overfitting and prevent the network to learn by heart every input. We can relate that idea with the concept of dropout, where some neurons are randomly ignored during the training process. The global idea of those 2 concepts is to prevent overfitting by *canceling* the effects of some neurons in the hidden representation (sparsity component) or in different layers (dropout). However, the difference is that dropout adds noise to the training by randomly forcing some neuron outputs to zero while the sparsity component pull towards zero the weights of neurons having minimal impact on training.
 
 Sparse autoencoders are generally used to learn features for another task (e.g classification). In that sense, it can accomplish the feature engineering of a task by learning useful features.
 
 ## Denoising autoencoders
 
-Another kind of autoencoder that has been widely used are the denoising autocoders [@Vincent-2008]. These autoencoders are really close to ["vanilla deep autoencoders"](#deep-autoencoders) except they receive a corrupted input and afterwards are trained to produce an uncorrupted output.
+Another kind of autoencoder that has been widely used are the denoising autocoders [@Vincent-2008]. These autoencoders are really close to [deep autoencoders"](#deep-autoencoders) except they receive a corrupted input and are trained to produce an uncorrupted output.
 
 The denoising autoencoders will then minimize:
 
 $$
-L(x, p_\phi\{q_\theta(\tilde{x})\}) 
+L(x, p_\phi\{q_\theta(\tilde{x} | x)\}) 
 $$
 where $\tilde{x}$ is a copy of $x$ that has been corrupted.
 
-There are different ways of corrupting the input. One way could be to choose a given proportion $\nu$ of inputs to randomly "destruct" by assigning a 0-value while keeping the other inputs untouched. That approach is called *masking noise*. We could also corrupt the data by adding *Gaussian noise* or setting randomly a proportion of the inputs to maximum or minimum value (*salt-and-pepper noise)*. The intuition behind this approach is again to prevent the algorithm from learning the useless identity function.
+There are different ways of corrupting the input [@journals/jmlr/VincentLLBM10]. One way is to choose a given proportion $\nu$ of inputs to randomly "destruct" by assigning a 0-value while keeping the other inputs untouched. That approach is called *masking noise*. The input can also be corrupted by adding *Gaussian noise* or setting randomly a proportion of the inputs to maximum or minimum value (*salt-and-pepper noise)*. The intuition behind this approach is again to prevent the algorithm from learning the useless identity function.
 
 ## Contractive autoencoders
 
@@ -159,7 +168,7 @@ $$
 L = \text{reconstruction error} + \text{regularizer}
 $$
 
-However, instead of encoding a hidden representation of size $n$, it outputs two vectors of size $n$: a vector of means $\boldsymbol \mu$ and a vector of standard deviations $\boldsymbol \sigma$. Those vectors allow to sample from Gaussian distributions, which gives the variational autoencoders the unique property of having a latent space that is **continuous** [@toward-VAE]. This is the main difference with previous seen autoencoders. In other words, the basic autoencoders learn a reprensetation that "points" somewhere in the latent space, while varitional autoencoders learn a representation that points to an "area", an area that is defined by the mean $\boldsymbol \mu$ and the standard deviation $\boldsymbol \sigma$ of the latent space. That property is actually very useful in generative modelling. The figure \@ref(fig:vae) illustrates the basic structure of a variational autoencoder.
+However, instead of encoding a hidden representation of size $n$, it outputs two vectors of size $n$: a vector of means $\boldsymbol \mu$ and a vector of standard deviations $\boldsymbol \sigma$. Those vectors allow to sample from Gaussian distributions, which gives the variational autoencoders the unique property of having a latent space that is **continuous** [@toward-VAE]. This is the main difference with previous seen autoencoders. In other words, the basic autoencoders learn a reprensetation that "points" somewhere in the latent space, while varitional autoencoders learn a representation that points to an "area", an area that is defined by the mean $\boldsymbol \mu$ and the standard deviation $\boldsymbol \sigma$ of the latent space. That property is actually very useful in generative modelling. The figure \@ref(fig:vae) illustrates the basic structure of a variational autoencoder. In the figure, we can see that the input data first pass through dense layers (fully-connected or convolutional). At some point near the encoded representation, the layers are split into 2 components ($\mu$ and $\sigma$). The "sample 30" layer will sample a latent representation using those $\mu$ and $\sigma$. Once we have the sampled representation, it is decoded back to the same size as the input. 
 
 ```{r vae, fig.cap="Variational autoencoder structure. Instead of learning a representation directly, it learns the parameters of Gaussian distributions and the hidden representation is given by sampling from those distributions.", out.width = '60%', fig.align='center', fig.pos=""}
 knitr::include_graphics("images/vae-structure.png")
@@ -171,13 +180,19 @@ $$
 L(x, p_\phi\{q_\theta(x)\}) + D_{KL}\big[q_\theta(z|x) || p(z)\big]
 $$
 
-where $D_{KL}$ is a regularizer called the Kullback-Leibler divergence. Its goal is to ensure that the two distributions $p(z)$ and the encoder ($q_{\theta}(x)$) are somewhat similar. The function $p(z)$ is a Gaussian distribution $N(0, I)$. 
+where $D_{KL}$ is the Kullback-Leibler divergence. Its goal is to ensure that the encoded distribution $q_{\theta}(x)$ and a target distribution $p(z)$ are similar. The function $p(z)$ is a Gaussian distribution $N(0, I)$. In this kind of autoencoder, the hidden representation is stochastic because it is coming from a probability distribution. In order to simplify the derivatives in the backpropagation, we do a clever trick called the "reparametrization trick". In fact, it is possible for some distribution (such as the Gaussian), to separate the parameters ($\mu$ and $\sigma$) from the stochasticity. Concretely, we can express a normally-distributed variable as:
+
+$$
+z = \mu + \sigma \odot \epsilon
+$$
+
+where $\epsilon \sim N(0,1)$. In brief, that means that the "sample 30" layer in the figure above, is generated from the 2 parameters layers $\mu$ and $\sigma$ and a normal sample. The backpropagation then ignores the stochastic component, and derivates the parameters layers only, which simplifies at lot the optimization process.
 
 ## Adversarial autoencoders
 
-Adversarial autoencoders [@Makhzani-2015] are really close to the variational autoencoders in the sense that they also produce a continuous latent space by learning a certain distribution. However, this prior distribution is set in advance and learned in an adversarial fashion instead of being learned by a divergence crtierion. That's mainly why we say that adversarial autoencoders are the combination of variational entoencoders and generative adversarial networks (GAN). The figure \@ref(fig:aae) shows the architecture of an adversarial autoencoder. In that figure, the upper portion corresponds to the standard autoencoder that reconstruct the input $x$ from a latent representation $z$. The bottom portion is a second network trained to predict whether a sample arise from the hidden representation or from a distrubution decided in advance. As such, the autoencoder will try to learn the prior distribution and fool the model at the bottom. That kind of approach is often related with generative modeling.
+Adversarial autoencoders [@Makhzani-2015] are really close to the variational autoencoders in the sense that they also produce a continuous latent space by learning a certain distribution. However, this prior distribution is set in advance and learned in an adversarial fashion instead of being learned by a divergence crtierion. In other words, we replace the KL divergence by a generative adversarial network (GAN) That's mainly why we say that adversarial autoencoders are the combination of variational entoencoders and GAN. The figure \@ref(fig:aae) shows the architecture of an adversarial autoencoder. As [@Makhzani-2015] described in his work, the upper portion of the architecture corresponds to the standard autoencoder that reconstruct the input $x$ from a latent representation $z$. The bottom portion is a second network trained to predict whether a sample arise from the hidden representation or from a distrubution decided in advance. As such, the autoencoder will try to learn the prior distribution and fool the model at the bottom. That kind of approach is often related with generative modeling.
 
-```{r aae, fig.cap="Basic architecture of a adversarial autoencoder.", out.width = '100%', fig.align='center', fig.pos=""}
+```{r aae, fig.cap="Basic architecture of a adversarial autoencoder taken from (Makhzani et al. 2015).", out.width = '100%', fig.align='center', fig.pos=""}
 knitr::include_graphics("images/adversarial-structure.png")
 ```
 
@@ -187,7 +202,7 @@ $$
 q(z) = \int_{x}q_{\theta}(z|x)p_d(x)dx
 $$
 
-In the training process, the adversarial autoencoder is trying to match the $q(z)$ and the $p(z)$ distributions. There are several choices for the prior distribution from which to learn:
+In the training process, the adversarial autoencoder tries to learn a good representation through the reconstruction loss and through the discriminative loss of the GAN portion of the network. There are several choices for the prior distribution from which to learn:
 
 - Gaussian distribution
 - Gamma distribution
