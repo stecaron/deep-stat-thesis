@@ -3,14 +3,15 @@ import numpy
 from comet_ml import Experiment
 import torch
 
+import torch.nn as nn
 import torch.utils.data as Data
 import matplotlib.pyplot as plt
 from torchvision import transforms
 
 from src.cars.data import DataGenerator, define_filenames
-from src.cars.model import CarsConvVAE, SmallCarsConvVAE, SmallCarsConvVAE128, AlexNetVAE
-from src.mnist.utils.train import train_mnist_vae
-from src.utils.empirical_pval import compute_pval_loaders, compute_reconstruction_pval
+from src.cars.model import CarsConvAE
+from src.mnist.utils.train import train_mnist
+from src.utils.empirical_pval import compute_reconstruction_pval
 from src.mnist.utils.stats import test_performances
 from src.utils.denormalize import denormalize
 
@@ -18,7 +19,7 @@ from src.utils.denormalize import denormalize
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
                         disabled=False)
-experiment.add_tag("cars_dogs")
+experiment.add_tag("cars_dogs_ae")
 
 # General parameters
 PATH_DATA_CARS = os.path.join(os.path.expanduser("~"),
@@ -40,12 +41,9 @@ hyper_params = {
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 1000,
     "TEST_NOISE": 0.1,
-    "LATENT_DIM": 50,  # latent distribution dimensions
-    "ALPHA": 0.1,  # level of significance for the test
-    "BETA_epoch": [5, 10, 15],
-    "BETA": [0, 100, 10],  # hyperparameter to weight KLD vs RCL
-    "MODEL_NAME": "vae_model_cars",
-    "LOAD_MODEL": True,
+    "ALPHA": 0.1,
+    "MODEL_NAME": "classic_ae_model_cars",
+    "LOAD_MODEL": False,
     "LOAD_MODEL_NAME": "vae_model_cars"
 }
 
@@ -86,8 +84,9 @@ test_loader = Data.DataLoader(dataset=test_data,
                               num_workers=hyper_params["NUM_WORKERS"])
 
 # Load model
-model = SmallCarsConvVAE128(z_dim=hyper_params["LATENT_DIM"])
+model = CarsConvAE()
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
+loss_func = nn.MSELoss()
 
 model.to(device)
 
@@ -95,30 +94,19 @@ model.to(device)
 if hyper_params["LOAD_MODEL"]:
     model.load_state_dict(torch.load(f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
 
-train_mnist_vae(train_loader,
-                model,
-                criterion=optimizer,
-                n_epoch=hyper_params["EPOCH"],
-                experiment=experiment,
-                beta_list=hyper_params["BETA"],
-                beta_epoch=hyper_params["BETA_epoch"],
-                model_name=hyper_params["MODEL_NAME"],
-                device=device,
-                loss_type="perceptual",
-                flatten=False)
+train_mnist(train_loader,
+            model,
+            criterion=optimizer,
+            n_epoch=hyper_params["EPOCH"],
+            #loss_func=loss_func,
+            experiment=experiment,
+            device=device,
+            model_name=hyper_params["MODEL_NAME"],
+            perceptual_ind=True)
 
 # Compute p-values
 model.to(device)
-pval, _ = compute_pval_loaders(train_loader,
-                               test_loader,
-                               model,
-                               device=device)
-
-#pval, _ = compute_reconstruction_pval(train_loader,
-#                                      model,
-#                                      test_loader,
-#                                      device=device)
-
+pval, _ = compute_reconstruction_pval(train_loader, model, test_loader, device)
 pval = 1 - pval #we test on the tail
 pval_order = numpy.argsort(pval)
 

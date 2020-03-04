@@ -3,27 +3,67 @@ import time
 import torch
 
 from src.mnist.utils.loss_vae import calculate_loss
+from src.cars.loss.perceptual_loss import LossNetwork
+from src.mnist.utils.loss_vae import perceptual_loss
 
 
-def train_mnist(train_loader, model, criterion, loss_func, n_epoch,
-                experiment):
+def train_mnist(train_loader,
+                model,
+                criterion,
+                n_epoch,
+                experiment,
+                device,
+                model_name,
+                loss_func=None,
+                perceptual_ind=False):
+
+    model.train()
+
+    if perceptual_ind:
+        loss_network = LossNetwork(device)
 
     for epoch in range(n_epoch):
+
+        start = time.time()
+        train_loss = 0.0
+
         for data in train_loader:
             inputs, targets = data
             inputs = inputs.float()
             outputs = inputs
 
-            encoded, decoded = model(inputs)
+            model.to(device)
+            inputs = inputs.to(device)
+            outputs = inputs.to(device)
 
-            loss = loss_func(decoded, outputs)
+            decoded = model(inputs)
+
+            if perceptual_ind:
+                loss = perceptual_loss(outputs, decoded, loss_network)
+            else:
+                loss = loss_func(decoded, outputs)
+
+            train_loss += loss.item()
             criterion.zero_grad()
             loss.backward()
             criterion.step()
 
-        print('Epoch: ', epoch, '| train loss: %.4f' % loss.data.numpy())
+        train_loss = train_loss / len(train_loader) * train_loader.batch_size
+
+        end = time.time()
+        print(
+            f'Epoch: {epoch} ... train loss: {train_loss} ... time: {int(end - start)}'
+        )
         # log experiment result
-        experiment.log_metric("train_loss", loss.data.numpy())
+        experiment.log_metric("train_loss", train_loss)
+
+        if epoch == 0:
+            best_loss = train_loss
+
+        if train_loss <= best_loss:
+            model.cpu()
+            torch.save(model, f'{model_name}.pt')
+            model.save_weights(f'./{model_name}.h5')
 
 
 def train_mnist_vae(train_loader,
@@ -31,18 +71,28 @@ def train_mnist_vae(train_loader,
                     criterion,
                     n_epoch,
                     experiment,
-                    beta,
+                    beta_list,
+                    beta_epoch,
                     model_name,
                     device,
                     loss_type="binary",
                     flatten=True):
     # set the train mode
     model.train()
+    loss_network = LossNetwork(device)
 
     for epoch in range(n_epoch):
         train_loss = 0.0
 
+        step = 0
+        for beta_step in beta_epoch:
+            if epoch < beta_step:
+                beta = beta_list[step]
+                break
+            step += 1
+
         start = time.time()
+        print(f"beta: {beta}")
         for i, (x, y) in enumerate(train_loader):
             # reshape the data into [batch_size, 784]
             if flatten:
@@ -54,7 +104,13 @@ def train_mnist_vae(train_loader,
 
             criterion.zero_grad()
             reconstructed_x, z_mu, z_var, _ = model(x, device=device)
-            loss, KLD = calculate_loss(x, reconstructed_x, z_mu, z_var, loss_type=loss_type, beta=beta)
+            loss, KLD = calculate_loss(x,
+                                       reconstructed_x,
+                                       z_mu,
+                                       z_var,
+                                       loss_type=loss_type,
+                                       beta=beta,
+                                       loss_network=loss_network)
             loss.backward()
             train_loss += loss.item()
             criterion.step()
@@ -63,7 +119,9 @@ def train_mnist_vae(train_loader,
         KLD_perc = numpy.around((KLD / loss).cpu().detach().numpy(), 2)
 
         end = time.time()
-        print(f'Epoch {epoch} ... Train Loss: {train_loss:.2f} ... time: {int(end - start)}')
+        print(
+            f'Epoch {epoch} ... Train Loss: {train_loss:.2f} ... time: {int(end - start)}'
+        )
         experiment.log_metric("train_loss", train_loss)
         experiment.log_metric("kld_percentage", KLD_perc)
 

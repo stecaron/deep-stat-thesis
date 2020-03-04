@@ -13,10 +13,10 @@ def test_performances(p_values, index, alpha):
             cutoff = k
             break
         k += 1
-    
+
     total_outliers = numpy.sum(index[p_values_ord])
     detected_outliers = numpy.sum(index[p_values_ord][0:cutoff])
-    
+
     precision = detected_outliers / (cutoff + 1)
     recall = detected_outliers / total_outliers
 
