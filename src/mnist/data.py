@@ -6,8 +6,15 @@ from torchvision import transforms
 
 from torchvision.datasets.mnist import MNIST
 
+from six.moves import urllib
+
 
 def load_mnist(path, download=False):
+
+    # Path for torchvision bug: https://github.com/pytorch/vision/issues/1938
+    opener = urllib.request.build_opener()
+    opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+    urllib.request.install_opener(opener)
 
     img_transform = transforms.Compose([
         transforms.ToTensor()

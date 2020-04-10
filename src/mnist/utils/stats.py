@@ -19,5 +19,6 @@ def test_performances(p_values, index, alpha):
 
     precision = detected_outliers / (cutoff + 1)
     recall = detected_outliers / total_outliers
+    f1_score = 2 * (precision * recall) / (precision + recall)
 
-    return precision, recall
+    return precision, recall, f1_score
