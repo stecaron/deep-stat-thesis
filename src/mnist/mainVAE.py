@@ -1,3 +1,4 @@
+import os
 import numpy
 from comet_ml import Experiment
 import torch
@@ -16,38 +17,43 @@ from src.mnist.vae import ConvVAE
 from src.mnist.vae import ConvLargeVAE
 from src.mnist.utils.train import train_mnist_vae
 from src.mnist.utils.evaluate import to_img
-from src.utils.empirical_pval import compute_empirical_pval
+from src.utils.empirical_pval import compute_pval_loaders
 from src.mnist.utils.stats import test_performances
 
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
-                        disabled=True)
+                        disabled=False)
 experiment.add_tag("mnist_vae")
 
 # General parameters
 DOWNLOAD_MNIST = False
-PATH_DATA = '/Users/stephanecaron/Downloads/mnist'
+PATH_DATA = os.path.join(os.path.expanduser("~"),
+                              'data/mnist')
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 
 # Define training parameters
 hyper_params = {
-    "EPOCH": 75,
-    "BATCH_SIZE": 32,
+    "EPOCH": 30,
+    "BATCH_SIZE": 256,
+    "NUM_WORKERS": 10,
     "LR": 0.001,
     "TRAIN_SIZE": 4000,
     "TRAIN_NOISE": 0.01,
-    "TEST_SIZE": 2000,
-    "TEST_NOISE": 0.05,
-    "CLASS_SELECTED": 6,  # on which class we want to learn outliers
-    "CLASS_CORRUPTED": [2, 7],  # which class we want to corrupt our dataset with
+    "TEST_SIZE": 500,
+    "TEST_NOISE": 0.1,
+    "CLASS_SELECTED": [7],  # on which class we want to learn outliers
+    "CLASS_CORRUPTED": [0, 2, 3, 6],  # which class we want to corrupt our dataset with
     #"INPUT_DIM": 28 * 28,  # In the case of MNIST
     #"HIDDEN_DIM": 256,  # hidden layer dimensions (before the representations)
-    "LATENT_DIM": 200,  # latent distribution dimensions
+    "LATENT_DIM": 50,  # latent distribution dimensions
     "ALPHA": 0.1, # level of significance for the test
-    "BETA": 1, # hyperparameter to weight KLD vs RCL
-    "MODEL_NAME": "vae_model.pt",
-    "LOAD_MODEL": True,
-    "LOAD_MODEL_NAME": "vae_model.pt"
+    "BETA_epoch": [5, 10, 25],
+    "BETA": [0, 1, 0.0001],  # hyperparameter to weight KLD vs RCL
+    "MODEL_NAME": "mnist_vae_model",
+    "LOAD_MODEL": False,
+    "LOAD_MODEL_NAME": "mnist_vae_model.pt"
 }
 
 # Log experiment parameters
@@ -62,9 +68,10 @@ train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
 model = ConvLargeVAE(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
+
 # Build "train" and "test" datasets
 id_maj_train = numpy.random.choice(
-    numpy.where(train_data.train_labels == hyper_params["CLASS_SELECTED"])[0],
+    numpy.where(numpy.isin(train_data.train_labels, hyper_params["CLASS_SELECTED"]))[0],
     int((1 - hyper_params["TRAIN_NOISE"]) * hyper_params["TRAIN_SIZE"]),
     replace=False
 )
@@ -76,14 +83,14 @@ id_min_train = numpy.random.choice(
 id_train = numpy.concatenate((id_maj_train, id_min_train))
 
 id_maj_test = numpy.random.choice(
-    numpy.where(test_data.test_labels == hyper_params["CLASS_SELECTED"])[0],
+    numpy.where(numpy.isin(test_data.test_labels, hyper_params["CLASS_SELECTED"]))[0],
     int((1 - hyper_params["TEST_NOISE"]) * hyper_params["TEST_SIZE"]),
-    replace=True
+    replace=False
 )
 id_min_test = numpy.random.choice(
     numpy.where(numpy.isin(test_data.test_labels, hyper_params["CLASS_CORRUPTED"]))[0],
     int(hyper_params["TEST_NOISE"] * hyper_params["TEST_SIZE"]),
-    replace=True
+    replace=False
 )
 id_test = numpy.concatenate((id_min_test, id_maj_test))
 
@@ -95,40 +102,49 @@ test_data.targets = test_data.targets[id_test]
 
 train_loader = Data.DataLoader(dataset=train_data,
                                batch_size=hyper_params["BATCH_SIZE"],
-                               shuffle=True)
+                               shuffle=True,
+                               num_workers=hyper_params["NUM_WORKERS"])
 
 test_loader = Data.DataLoader(dataset=test_data,
                               batch_size=test_data.data.shape[0],
-                              shuffle=False)
+                              shuffle=False,
+                              num_workers=hyper_params["NUM_WORKERS"])
+
+scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyper_params["LR"], steps_per_epoch=len(train_loader), epochs=hyper_params["EPOCH"])
 
 if hyper_params["LOAD_MODEL"]:
     model = torch.load(hyper_params["LOAD_MODEL_NAME"])
 else :
     train_mnist_vae(train_loader,
-                model,
-                criterion=optimizer,
-                n_epoch=hyper_params["EPOCH"],
-                experiment=experiment,
-                beta=hyper_params["BETA"],
-                loss_type="binary",
-                flatten=False)
+                    model,
+                    criterion=optimizer,
+                    n_epoch=hyper_params["EPOCH"],
+                    experiment=experiment,
+                    scheduler=scheduler,
+                    beta_list=hyper_params["BETA"],
+                    beta_epoch=hyper_params["BETA_epoch"],
+                    model_name=hyper_params["MODEL_NAME"],
+                    device=device,
+                    loss_type="binary",
+                    flatten=False)
 
 # Compute p-values
-train_data.data = train_data.data.detach().numpy()
-test_data.data = test_data.data.detach().numpy()
-pval, _ = compute_empirical_pval(train_data.data, model, test_data.data)
+model.to(device)
+pval, _ = compute_pval_loaders(train_loader,
+                               test_loader,
+                               model,
+                               device=device)
+pval = 1 - pval #we test on the tail
 pval_order = numpy.argsort(pval)
 
 # Plot p-values
-x_line = numpy.arange(0, test_data.data.shape[0], step=1)
-y_line = numpy.linspace(0, 1, test_data.data.shape[0])
-y_adj = numpy.arange(0, test_data.data.shape[0],
-                     step=1) / test_data.data.shape[0] * hyper_params["ALPHA"]
-zoom = int(0.2 * test_data.data.shape[0])  # nb of points to zoom
-index = numpy.concatenate([
-    numpy.repeat(True, len(id_min_test)),
-    numpy.repeat(False, len(id_maj_test))
-])
+x_line = numpy.arange(0, len(test_data), step=1)
+y_line = numpy.linspace(0, 1, len(test_data))
+y_adj = numpy.arange(0, len(test_data),
+                     step=1) / len(test_data) * hyper_params["ALPHA"]
+zoom = int(0.2 * len(test_data))  # nb of points to zoom
+
+index = numpy.isin(test_data.test_labels, hyper_params["CLASS_CORRUPTED"]).astype(int)
 
 fig, (ax1, ax2) = plt.subplots(2, 1)
 
@@ -150,22 +166,34 @@ ax2.plot(x_line[0:zoom], y_adj[0:zoom], color="red")
 ax2.set_title('Zoomed in')
 ax2.set_xticklabels([])
 
-experiment.log_figure(figure_name="empirical_test_hypothesis", figure=fig, overwrite=True)
+experiment.log_figure(figure_name="empirical_test_hypothesis",
+                      figure=fig,
+                      overwrite=True)
 plt.show()
 
 # Compute some stats
-precision, recall = test_performances(pval, index, hyper_params["ALPHA"])
+precision, recall, f1_score = test_performances(pval, index, hyper_params["ALPHA"])
+print(f"Precision: {precision}")
+print(f"Recall: {recall}")
+print(f"F1 Score: {f1_score}")
+experiment.log_metric("precision", precision)
+experiment.log_metric("recall", recall)
+experiment.log_metric("f1_score", f1_score)
 
 # Show some examples
+
 fig, axs = plt.subplots(5, 5)
 fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    axs[i].imshow(test_data.data[pval_order[i]], cmap='gray')
+    image = test_data.data[pval_order[i]]
+    axs[i].imshow(image, cmap='gray')
     axs[i].axis('off')
 
-experiment.log_figure(figure_name="rejetcted_observations", figure=fig, overwrite=True)
+experiment.log_figure(figure_name="rejetcted_observations",
+                      figure=fig,
+                      overwrite=True)
 plt.show()
 
 fig, axs = plt.subplots(5, 5)
@@ -173,10 +201,12 @@ fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    axs[i].imshow(test_data.data[pval_order[int(0.75 * len(pval)) + i]], cmap='gray')
+    image = test_data.data[pval_order[int(len(pval) - 1) - i]]
+    axs[i].imshow(image, cmap='gray')
     axs[i].axis('off')
 
-experiment.log_figure(figure_name="better_observations", figure=fig, overwrite=True)
+experiment.log_figure(figure_name="better_observations",
+                      figure=fig,
+                      overwrite=True)
 plt.show()
 
-torch.save(model, hyper_params["MODEL_NAME"])

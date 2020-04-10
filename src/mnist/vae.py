@@ -107,7 +107,7 @@ class ConvVAE(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, stride=2),  # b, 16, 14, 14,
             nn.Conv2d(16, 8, kernel_size=3, padding=1,
-                      stride=1),  # b, 8, 14, 14   
+                      stride=1),  # b, 8, 14, 14
             nn.ReLU(),
             nn.MaxPool2d(2, stride=2),  # b, 8, 7, 7
             nn.Conv2d(8, 8, kernel_size=3, padding=1, stride=1),  # b, 8, 7, 7
@@ -188,7 +188,7 @@ class ConvLargeVAE(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, stride=2),  # b, 16, 14, 14,
             nn.Conv2d(16, 32, kernel_size=3, padding=1,
-                      stride=1),  # b, 32, 14, 14   
+                      stride=1),  # b, 32, 14, 14
             nn.ReLU(),
             nn.MaxPool2d(2, stride=2),  # b, 32, 7, 7
             nn.Conv2d(32, 64, kernel_size=3, padding=1,
@@ -219,22 +219,24 @@ class ConvLargeVAE(nn.Module):
             nn.Conv2d(16, 1, kernel_size=3, stride=1,
                       padding=1),  # b, 1, 28, 28
             nn.Sigmoid())
-    
-    def reparameterize(self, mu, logvar):
+
+    def reparameterize(self, mu, logvar, device):
         std = logvar.mul(0.5).exp_()
         # return torch.normal(mu, std)
         esp = torch.randn(*mu.size())
+        std = std.to(device)
+        esp = esp.to(device)
         z = mu + std * esp
         return z
 
-    def bottleneck(self, h):
+    def bottleneck(self, h, device):
         mu, logvar = self.fc1(h), self.fc2(h)
-        z = self.reparameterize(mu, logvar)
+        z = self.reparameterize(mu, logvar, device)
         return z, mu, logvar
 
-    def encode(self, x):
+    def encode(self, x, device):
         h = self.encoder(x)
-        z, mu, logvar = self.bottleneck(h)
+        z, mu, logvar = self.bottleneck(h, device)
         return z, mu, logvar
 
     def decode(self, z):
@@ -242,7 +244,11 @@ class ConvLargeVAE(nn.Module):
         z = self.decoder(z)
         return z
 
-    def forward(self, x):
-        z, mu, logvar = self.encode(x)
+    def forward(self, x, device):
+        z, mu, logvar = self.encode(x, device)
         generated_x = self.decode(z)
         return generated_x, mu, logvar, z
+
+    def save_weights(self, path):
+        torch.save(self.state_dict(), path)
+

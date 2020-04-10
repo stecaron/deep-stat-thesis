@@ -71,6 +71,7 @@ def train_mnist_vae(train_loader,
                     criterion,
                     n_epoch,
                     experiment,
+                    scheduler,
                     beta_list,
                     beta_epoch,
                     model_name,
@@ -79,10 +80,20 @@ def train_mnist_vae(train_loader,
                     flatten=True):
     # set the train mode
     model.train()
-    loss_network = LossNetwork(device)
+    if loss_type == "perceptual":
+        loss_network = LossNetwork(device)
+    else:
+        loss_network = None
+
+
 
     for epoch in range(n_epoch):
         train_loss = 0.0
+
+        list_mu_maj = []
+        list_mu_min = []
+        list_var_maj = []
+        list_var_min = []
 
         step = 0
         for beta_step in beta_epoch:
@@ -93,6 +104,7 @@ def train_mnist_vae(train_loader,
 
         start = time.time()
         print(f"beta: {beta}")
+
         for i, (x, y) in enumerate(train_loader):
             # reshape the data into [batch_size, 784]
             if flatten:
@@ -114,9 +126,30 @@ def train_mnist_vae(train_loader,
             loss.backward()
             train_loss += loss.item()
             criterion.step()
+            scheduler.step()
+
+            z_mu = z_mu.cpu()
+            z_var = z_var.cpu()
+            y = y.cpu()
+
+            list_mu_maj.append(torch.mean(torch.mean(z_mu[numpy.where(y == 0)], 0)))
+            list_mu_min.append(torch.mean(torch.mean(z_mu[numpy.where(y != 0)], 0)))
+            list_var_maj.append(torch.mean(torch.mean(torch.exp(z_var[numpy.where(y == 0)]), 0)))
+            list_var_min.append(torch.mean(torch.mean(torch.exp(z_var[numpy.where(y != 0)]), 0)))
+
 
         train_loss = train_loss / len(train_loader) * train_loader.batch_size
         KLD_perc = numpy.around((KLD / loss).cpu().detach().numpy(), 2)
+
+        mean_mu_maj = sum(list_mu_maj)/len(list_mu_maj)
+        mean_mu_min = sum(list_mu_min)/len(list_mu_min)
+        mean_var_maj = sum(list_var_maj)/len(list_var_maj)
+        mean_var_min = sum(list_var_min)/len(list_var_min)
+
+        experiment.log_metric("mean_mu_maj", mean_mu_maj.detach().cpu())
+        experiment.log_metric("mean_mu_min", mean_mu_min.detach().cpu())
+        experiment.log_metric("mean_var_maj", mean_var_maj.detach().cpu())
+        experiment.log_metric("mean_var_min", mean_var_min.detach().cpu())
 
         end = time.time()
         print(

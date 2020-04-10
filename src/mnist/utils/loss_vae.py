@@ -6,13 +6,10 @@ import torch.nn.functional as F
 def calculate_loss(x, reconstructed_x, mean, log_var, beta, loss_type="binary", loss_network=None):
     # reconstruction loss
     if loss_type == "binary":
-        #RCL = F.binary_cross_entropy(reconstructed_x, x, reduction="sum")
-        #RCL = F.binary_cross_entropy(reconstructed_x, x, size_average=False)
-        reconstruction_function = nn.BCELoss()
-        reconstruction_function.size_average = False
-        RCL = reconstruction_function(reconstructed_x, x)
+        #RCL = F.binary_cross_entropy(reconstructed_x, x, reduction="mean") * x.shape[2] * x.shape[2] * x.shape[1]
+        RCL = F.binary_cross_entropy(reconstructed_x, x, reduction="sum") / x.shape[0]
     elif loss_type == "mse":
-        RCL = F.mse_loss(reconstructed_x, x, reduction="mean") * 128 * 128 * 3
+        RCL = F.mse_loss(reconstructed_x, x, reduction="mean") * x.shape[2] * x.shape[2] * x.shape[1]
     elif loss_type == "perceptual":
         features_y = loss_network(x)
         features_x = loss_network(reconstructed_x)
