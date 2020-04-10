@@ -1,0 +1,33 @@
+\begin{thebibliography}{}
+
+\bibitem[Aggarwal, 2016]{10.5555/3086742}
+Aggarwal, C.~C. (2016).
+\newblock {\em Outlier Analysis}.
+\newblock Springer Publishing Company, Incorporated, 2nd edition.
+
+\bibitem[An and Cho, 2015]{An2015VariationalAB}
+An, J. and Cho, S. (2015).
+\newblock Variational autoencoder based anomaly detection using reconstruction
+  probability.
+
+\bibitem[Chandola et~al., 2007]{Chandola07anomalydetection:}
+Chandola, V., Banerjee, A., and Kumar, V. (2007).
+\newblock Anomaly detection: A survey.
+
+\bibitem[Goodfellow et~al., 2016]{Goodfellow-et-al-2016}
+Goodfellow, I., Bengio, Y., and Courville, A. (2016).
+\newblock {\em Deep Learning}.
+\newblock MIT Press.
+\newblock \url{http://www.deeplearningbook.org}.
+
+\bibitem[Kingma and Welling, 2013]{kingma2013autoencoding}
+Kingma, D.~P. and Welling, M. (2013).
+\newblock Auto-encoding variational bayes.
+\newblock cite arxiv:1312.6114.
+
+\bibitem[Zimek and Schubert, 2017]{Zimek2017}
+Zimek, A. and Schubert, E. (2017).
+\newblock {\em Outlier Detection}, pages 1--5.
+\newblock Springer New York, New York, NY.
+
+\end{thebibliography}
