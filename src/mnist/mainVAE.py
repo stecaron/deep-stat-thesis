@@ -17,19 +17,19 @@ from src.mnist.vae import ConvVAE
 from src.mnist.vae import ConvLargeVAE
 from src.mnist.utils.train import train_mnist_vae
 from src.mnist.utils.evaluate import to_img
-from src.utils.empirical_pval import compute_pval_loaders
+from src.utils.empirical_pval import compute_pval_loaders, compute_pval_loaders_mixture
 from src.mnist.utils.stats import test_performances
 
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
-                        disabled=False)
+                        disabled=True)
 experiment.add_tag("mnist_vae")
 
 # General parameters
 DOWNLOAD_MNIST = False
 PATH_DATA = os.path.join(os.path.expanduser("~"),
-                              'data/mnist')
+                              'Downloads/mnist')
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 
@@ -37,9 +37,9 @@ device = "cpu"
 hyper_params = {
     "EPOCH": 30,
     "BATCH_SIZE": 256,
-    "NUM_WORKERS": 10,
+    "NUM_WORKERS": 0,
     "LR": 0.001,
-    "TRAIN_SIZE": 4000,
+    "TRAIN_SIZE": 1000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 500,
     "TEST_NOISE": 0.1,
@@ -53,7 +53,7 @@ hyper_params = {
     "BETA": [0, 1, 0.0001],  # hyperparameter to weight KLD vs RCL
     "MODEL_NAME": "mnist_vae_model",
     "LOAD_MODEL": False,
-    "LOAD_MODEL_NAME": "mnist_vae_model.pt"
+    "LOAD_MODEL_NAME": "mnist_vae_model"
 }
 
 # Log experiment parameters
@@ -118,7 +118,7 @@ else :
     train_mnist_vae(train_loader,
                     model,
                     criterion=optimizer,
-                    n_epoch=hyper_params["EPOCH"],
+                    n_epoch=0,
                     experiment=experiment,
                     scheduler=scheduler,
                     beta_list=hyper_params["BETA"],
@@ -130,10 +130,11 @@ else :
 
 # Compute p-values
 model.to(device)
-pval, _ = compute_pval_loaders(train_loader,
+pval, _ = compute_pval_loaders_mixture(train_loader,
                                test_loader,
                                model,
-                               device=device)
+                               device=device,
+                               method="mean")
 pval = 1 - pval #we test on the tail
 pval_order = numpy.argsort(pval)
 
