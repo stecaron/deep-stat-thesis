@@ -71,7 +71,7 @@ def train_mnist_vae(train_loader,
                     criterion,
                     n_epoch,
                     experiment,
-                    scheduler,
+                    #scheduler,
                     beta_list,
                     beta_epoch,
                     model_name,
@@ -126,7 +126,7 @@ def train_mnist_vae(train_loader,
             loss.backward()
             train_loss += loss.item()
             criterion.step()
-            scheduler.step()
+            #scheduler.step()
 
             z_mu = z_mu.cpu()
             z_var = z_var.cpu()

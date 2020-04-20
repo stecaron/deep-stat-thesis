@@ -110,7 +110,7 @@ test_loader = Data.DataLoader(dataset=test_data,
                               shuffle=False,
                               num_workers=hyper_params["NUM_WORKERS"])
 
-scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyper_params["LR"], steps_per_epoch=len(train_loader), epochs=hyper_params["EPOCH"])
+#scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyper_params["LR"], steps_per_epoch=len(train_loader), epochs=hyper_params["EPOCH"])
 
 if hyper_params["LOAD_MODEL"]:
     model = torch.load(hyper_params["LOAD_MODEL_NAME"])
@@ -120,7 +120,7 @@ else :
                     criterion=optimizer,
                     n_epoch=hyper_params["EPOCH"],
                     experiment=experiment,
-                    scheduler=scheduler,
+                    #scheduler=scheduler,
                     beta_list=hyper_params["BETA"],
                     beta_epoch=hyper_params["BETA_epoch"],
                     model_name=hyper_params["MODEL_NAME"],
