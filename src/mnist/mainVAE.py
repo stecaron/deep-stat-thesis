@@ -23,7 +23,7 @@ from src.mnist.utils.stats import test_performances
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
-                        disabled=True)
+                        disabled=False)
 experiment.add_tag("mnist_vae")
 
 # General parameters
@@ -35,7 +35,7 @@ device = "cpu"
 
 # Define training parameters
 hyper_params = {
-    "EPOCH": 30,
+    "EPOCH": 50,
     "BATCH_SIZE": 256,
     "NUM_WORKERS": 0,
     "LR": 0.001,
@@ -50,7 +50,7 @@ hyper_params = {
     "LATENT_DIM": 50,  # latent distribution dimensions
     "ALPHA": 0.1, # level of significance for the test
     "BETA_epoch": [5, 10, 25],
-    "BETA": [0, 1, 0.0001],  # hyperparameter to weight KLD vs RCL
+    "BETA": [0, 10, 1],  # hyperparameter to weight KLD vs RCL
     "MODEL_NAME": "mnist_vae_model",
     "LOAD_MODEL": False,
     "LOAD_MODEL_NAME": "mnist_vae_model"
@@ -118,7 +118,7 @@ else :
     train_mnist_vae(train_loader,
                     model,
                     criterion=optimizer,
-                    n_epoch=0,
+                    n_epoch=hyper_params["EPOCH"],
                     experiment=experiment,
                     scheduler=scheduler,
                     beta_list=hyper_params["BETA"],
@@ -134,8 +134,9 @@ pval, _ = compute_pval_loaders_mixture(train_loader,
                                test_loader,
                                model,
                                device=device,
-                               method="mean")
-pval = 1 - pval #we test on the tail
+                               method="mean",
+                               experiment=experiment)
+#pval = 1 - pval #we test on the tail
 pval_order = numpy.argsort(pval)
 
 # Plot p-values
