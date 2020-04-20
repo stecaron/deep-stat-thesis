@@ -207,16 +207,16 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     experiment.log_metrics(stats)
 
     kwargs = dict(alpha=0.5, bins=30)
-    
+
     # KLD distances between inliers and outliers
-    kld_train_inliers = kld_train[ind_cat_train.astype(bool) == False]
-    kld_train_outliers = kld_train[ind_cat_train.astype(bool) == True]
-    plt.hist(kld_train_inliers, **kwargs, color='g', label='Cars')
-    plt.hist(kld_train_outliers, **kwargs, color='r', label='Dogs')
-    plt.gca().set(title='KLD train distribution', ylabel='Frequency')
-    plt.legend()
-    experiment.log_figure(figure_name="kld_train", overwrite=True)
-    plt.show()
+    # kld_train_inliers = kld_train[ind_cat_train.astype(bool) == False]
+    # kld_train_outliers = kld_train[ind_cat_train.astype(bool) == True]
+    # plt.hist(kld_train_inliers, **kwargs, color='g', label='Cars')
+    # plt.hist(kld_train_outliers, **kwargs, color='r', label='Dogs')
+    # plt.gca().set(title='KLD train distribution', ylabel='Frequency')
+    # plt.legend()
+    # experiment.log_figure(figure_name="kld_train", overwrite=True)
+    # plt.clf()
 
     # Average train mu distribution
     mu_cars = numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :],
@@ -229,7 +229,20 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     plt.gca().set(title='Average mu train distribution', ylabel='Frequency')
     plt.legend()
     experiment.log_figure(figure_name="mu_train_dist", overwrite=True)
-    plt.show()
+    plt.clf()
+
+    # Average train var distribution
+    var_cars = numpy.mean(var_train[ind_cat_train.astype(bool) == False, :],
+                         axis=1)
+    var_dogs = numpy.mean(var_train[ind_cat_train.astype(bool) == True, :],
+                         axis=1)
+    kwargs = dict(alpha=0.5, bins=30)
+    plt.hist(var_cars, **kwargs, color='g', label='Cars')
+    plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
+    plt.gca().set(title='Average var train distribution', ylabel='Frequency')
+    plt.legend()
+    experiment.log_figure(figure_name="var_train_dist", overwrite=True)
+    plt.clf()
 
     # Average train mu over dimensions distribution
     mu_cars = numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :],
@@ -244,7 +257,22 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
                   ylabel='Frequency')
     plt.legend()
     experiment.log_figure(figure_name="mu_train_dist_dims", overwrite=True)
-    plt.show()
+    plt.clf()
+
+    # Average train var over dimensions distribution
+    var_cars = numpy.mean(var_train[ind_cat_train.astype(bool) == False, :],
+                         axis=0)
+    var_dogs = numpy.mean(var_train[ind_cat_train.astype(bool) == True, :],
+                         axis=0)
+    kwargs = dict(alpha=0.5, bins=30)
+    plt.hist(var_cars, **kwargs, color='g', label='Cars')
+    plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
+    plt.hist(var_all_train, **kwargs, color='b', label='All train')
+    plt.gca().set(title='50-dimensions var distribution over train',
+                  ylabel='Frequency')
+    plt.legend()
+    experiment.log_figure(figure_name="var_train_dist_dims", overwrite=True)
+    plt.clf()
 
     # Average test mu over dimensions distribution
     mu_cars = numpy.mean(mu_test[ind_cat_test.astype(bool) == False, :],
@@ -258,7 +286,21 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
                   ylabel='Frequency')
     plt.legend()
     experiment.log_figure(figure_name="mu_test_dist_dims", overwrite=True)
-    plt.show()
+    plt.clf()
+
+    # Average test var over dimensions distribution
+    var_cars = numpy.mean(var_test[ind_cat_test.astype(bool) == False, :],
+                         axis=0)
+    var_dogs = numpy.mean(var_test[ind_cat_test.astype(bool) == True, :], axis=0)
+    kwargs = dict(alpha=0.5, bins=30)
+    plt.hist(var_cars, **kwargs, color='g', label='Cars')
+    plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
+    plt.hist(var_all_train, **kwargs, color='b', label='All train')
+    plt.gca().set(title='50-dimensions mu distribution over test',
+                  ylabel='Frequency')
+    plt.legend()
+    experiment.log_figure(figure_name="mu_test_dist_dims", overwrite=True)
+    plt.clf()
 
     # First mu dimension distribution
     mu_cars = mu_train[ind_cat_train.astype(bool) == False, 0]
@@ -271,7 +313,7 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
                   ylabel='Frequency')
     plt.legend()
     experiment.log_figure(figure_name="mu_train_1st_dim", overwrite=True)
-    plt.show()
+    plt.clf()
 
     # Show 16 randoms dimensios
     random_dim = numpy.sort(random.sample(list(numpy.arange(0, 49)), 16))
@@ -296,7 +338,32 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     plt.xticks(fontsize=14)
     plt.legend()
     experiment.log_figure(figure_name="mu_train_16_random_dims", overwrite=True)
-    plt.show()
+    plt.clf()
+
+
+    # Show 16 randoms dimensios
+
+    fig, axs = plt.subplots(4,
+                            4,
+                            figsize=(15, 6),
+                            facecolor='w',
+                            edgecolor='k')
+    fig.subplots_adjust(hspace=.5, wspace=.001)
+    axs = axs.ravel()
+
+    for i in range(16):
+        dim = random_dim[i]
+        var_cars = var_train[ind_cat_train.astype(bool) == False, dim]
+        var_dogs = var_train[ind_cat_train.astype(bool) == True, dim]
+        axs[i].hist(var_cars, **kwargs, color='g', label='Cars')
+        axs[i].hist(var_dogs, **kwargs, color='r', label='Dogs')
+        axs[i].axvline(var_all_train[dim], color='b', label='All train')
+        axs[i].set_title(str(dim))
+
+    plt.xticks(fontsize=14)
+    plt.legend()
+    experiment.log_figure(figure_name="var_train_16_random_dims", overwrite=True)
+    plt.clf()
 
     # d = {
     #     'mu1': mu_train[:, random_dim[0]],
@@ -328,14 +395,14 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
                                             var_all_train)
 
     # KLD distances for test
-    kld_test_inliers = kld_test[ind_cat_test.astype(bool) == False]
-    kld_test_outliers = kld_test[ind_cat_test.astype(bool) == True]
-    plt.hist(kld_test_inliers, **kwargs, color='g', label='Cars')
-    plt.hist(kld_test_outliers, **kwargs, color='r', label='Dogs')
-    plt.gca().set(title='KLD train distribution', ylabel='Frequency')
-    plt.legend()
-    experiment.log_figure(figure_name="kld_test", overwrite=True)
-    plt.show()
+    # kld_test_inliers = kld_test[ind_cat_test.astype(bool) == False]
+    # kld_test_outliers = kld_test[ind_cat_test.astype(bool) == True]
+    # plt.hist(kld_test_inliers, **kwargs, color='g', label='Cars')
+    # plt.hist(kld_test_outliers, **kwargs, color='r', label='Dogs')
+    # plt.gca().set(title='KLD train distribution', ylabel='Frequency')
+    # plt.legend()
+    # experiment.log_figure(figure_name="kld_test", overwrite=True)
+    # plt.clf()
 
     pvals = []
     for i in range(kld_test.shape[0]):
