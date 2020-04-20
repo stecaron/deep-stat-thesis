@@ -10,7 +10,7 @@ from torchvision import transforms
 from src.cars.data import DataGenerator, define_filenames
 from src.cars.model import CarsConvVAE, SmallCarsConvVAE, SmallCarsConvVAE128, AlexNetVAE
 from src.mnist.utils.train import train_mnist_vae
-from src.utils.empirical_pval import compute_pval_loaders, compute_reconstruction_pval
+from src.utils.empirical_pval import compute_pval_loaders, compute_reconstruction_pval, compute_pval_loaders_mixture
 from src.mnist.utils.stats import test_performances
 from src.utils.denormalize import denormalize
 
@@ -21,10 +21,10 @@ experiment = Experiment(project_name="deep-stats-thesis",
 experiment.add_tag("cars_dogs")
 
 # General parameters
-PATH_DATA_CARS = os.path.join(os.path.expanduser("~"),
-                              'data/stanford_cars')
-PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"),
-                              'data/stanford_dogs2')
+PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'data/stanford_cars')
+PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'data/stanford_dogs2')
+# PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_cars')
+# PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
@@ -33,18 +33,18 @@ device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 hyper_params = {
     "IMAGE_SIZE": (128, 128),
     "NUM_WORKERS": 10,
-    "EPOCH": 10,
-    "BATCH_SIZE": 32,
-    "LR": 0.01,
+    "EPOCH": 20,
+    "BATCH_SIZE": 156,
+    "LR": 0.001,
     "TRAIN_SIZE": 10000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 1000,
     "TEST_NOISE": 0.1,
     "LATENT_DIM": 50,  # latent distribution dimensions
     "ALPHA": 0.1,  # level of significance for the test
-    "BETA_epoch": [5, 10, 20],
-    "BETA": [0, 1000, 0],  # hyperparameter to weight KLD vs RCL
-    "MODEL_NAME": "vae_model_cars",
+    "BETA_epoch": [5, 10, 15],
+    "BETA": [0, 100, 10],  # hyperparameter to weight KLD vs RCL
+    "MODEL_NAME": "vae_model_cars_20200420-noSchedulerLR",
     "LOAD_MODEL": False,
     "LOAD_MODEL_NAME": "vae_model_cars"
 }
@@ -54,10 +54,11 @@ experiment.log_parameters(hyper_params)
 
 # Define some transformations
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.CenterCrop((128, 128)),
+    transforms.Resize((128, 128)),
+    #transforms.CenterCrop((128, 128)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=MEAN, std=STD)])
+    transforms.Normalize(mean=MEAN, std=STD)
+])
 
 # Load data
 train_x_files, test_x_files, train_y, test_y = define_filenames(
@@ -88,7 +89,11 @@ test_loader = Data.DataLoader(dataset=test_data,
 # Load model
 model = SmallCarsConvVAE128(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
-scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyper_params["LR"], steps_per_epoch=len(train_loader), epochs=hyper_params["EPOCH"])
+# scheduler = torch.optim.lr_scheduler.OneCycleLR(
+#     optimizer,
+#     max_lr=hyper_params["LR"],
+#     steps_per_epoch=len(train_loader),
+#     epochs=hyper_params["EPOCH"])
 
 model.to(device)
 
@@ -101,7 +106,7 @@ train_mnist_vae(train_loader,
                 criterion=optimizer,
                 n_epoch=hyper_params["EPOCH"],
                 experiment=experiment,
-                scheduler=scheduler,
+                #scheduler=scheduler,
                 beta_list=hyper_params["BETA"],
                 beta_epoch=hyper_params["BETA_epoch"],
                 model_name=hyper_params["MODEL_NAME"],
@@ -111,17 +116,14 @@ train_mnist_vae(train_loader,
 
 # Compute p-values
 model.to(device)
-pval, _ = compute_pval_loaders(train_loader,
-                               test_loader,
-                               model,
-                               device=device)
+pval, _ = compute_pval_loaders_mixture(train_loader,
+                                       test_loader,
+                                       model,
+                                       device=device,
+                                       method="mean",
+                                       experiment=experiment)
 
-#pval, _ = compute_reconstruction_pval(train_loader,
-#                                      model,
-#                                      test_loader,
-#                                      device=device)
-
-pval = 1 - pval #we test on the tail
+pval = 1 - pval  #we test on the tail
 pval_order = numpy.argsort(pval)
 
 # Plot p-values
@@ -159,7 +161,8 @@ experiment.log_figure(figure_name="empirical_test_hypothesis",
 plt.show()
 
 # Compute some stats
-precision, recall, f1_score = test_performances(pval, index, hyper_params["ALPHA"])
+precision, recall, f1_score = test_performances(pval, index,
+                                                hyper_params["ALPHA"])
 print(f"Precision: {precision}")
 print(f"Recall: {recall}")
 print(f"F1-Score: {f1_score}")
@@ -189,8 +192,7 @@ fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    image = test_data[pval_order[int(len(pval) - 1) - i]][0].transpose_(
-        0, 2)
+    image = test_data[pval_order[int(len(pval) - 1) - i]][0].transpose_(0, 2)
     image = denormalize(image, MEAN, STD, device=device).numpy()
     axs[i].imshow(image)
     axs[i].axis('off')

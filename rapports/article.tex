@@ -82,7 +82,7 @@ Anomaly detection is a challenging topic that generated a lot of research in sta
 
 One challenge with anomaly detection is that we often deal with unlabeled data, that means the problem usually needs to be tackled with an unsupervised approach. Another important challenge, especially with unsupervised approaches, is that those detection algorithms often need a threshold. That threshold allows us to take a decision regarding a certain anomaly. Finally, those challenges become even more problematic when dealing with complex data such as images. \newline
 
-In that context highly complex data, neural networks are commonly used because their stacked layers are able to start from a complex input, like an image, and compress that information into smaller and richer representations. To deal with data without labels, a family of neural networks called the autoencoders are often used. Many applications of autoencoders exists in anomaly detection where the reconstruction error can used as a indicator of anomaly. However, those methodologies require a specific threshold, that can be difficult to define or can change in time. That is what \cite{An2015VariationalAB} tackled in their paper where the authors suggest a reconstruction probabilty, a measure that is more objective than the reconstruction error and does not require a threshold. However, the measure is still based on the reconstruction, where that could be problematic in the context of complex images compared to use a measure based on a more compressed representation.
+In that context highly complex data, neural networks are commonly used because their stacked layers are able to start from a complex input, like an image, and compress that information into smaller and richer representations. To deal with data without labels, a family of neural networks called the autoencoders are often used. Many applications of autoencoders exists in anomaly detection where the reconstruction error can used as a indicator of anomaly. However, those methodologies require a specific threshold, that can be difficult to define or can change in time. That is what \cite{An2015VariationalAB} tackled in their paper where the authors suggest a reconstruction probability, a measure that is more objective than the reconstruction error and does not require a threshold. However, the measure is still based on the reconstruction, where that could be problematic in the context of complex images compared to use a measure based on a more compressed representation.
 \newline
 
 
@@ -289,7 +289,7 @@ $$
 z = \mu + \sigma \odot \epsilon
 $$
 
-\noindent where $\epsilon \sim N(0,1)$. In brief, that means that the $z$ layer in the figure \ref{fig:VAEstructure} is generated from the 2 parameters layers $\mu$ and $\sigma$ and a normal sample. The backpropagation then ignores the stochastic component, and derivates the parameters layers only, which simplifies at lot the optimization process.
+\noindent where $\epsilon \sim N(0,1)$. In brief, that means that the $z$ layer in the figure \ref{fig:VAEstructure} is generated from the 2 parameters layers $\mu$ and $\sigma$ and a normal sample. The backpropagation then ignores the stochastic component, and derivates the parameters layers only, which simplifies at lot the optimization process. At the end, that Kullbach-Leibler loss component acts as a regularizer in the optimisation (\cite{kingma2013autoencoding}).
 
 \subsection{Hypothesis testing}
 
@@ -305,11 +305,19 @@ $\boldsymbol{H_1}$: $x_i$ does not come from the population $P$
 
 \section{Methodology}
 
-We propose an anomaly detection framework where we use the hidden representation of a variational autoencoder and transform that representation to a metric we can apply hypothesis testing and ultimatly detect anomalies with a level of significance.
+We propose an anomaly detection framework where we use the hidden representation of a variational autoencoder and transform that representation to a metric we can apply hypothesis testing. Ultimately, that hypothesis testing allows us to detect anomalies with a certain level of significance.
 
 \subsection{Approach}
 
-In our approach, we suppose we have access to a dataset that contains mostly "normal", observations. Those "normal" observations could also be called \textit{inliers}. Considering we have access to such dataset, we use the variational autoencoders to learn the distribution of that "normal" population. That distribution is essentially contained in the hidden representation, or more specifically in the layers $\mu$ and $\sigma$ of the VAE. Like we described in the section \ref{background-vae}, VAE has the particularity of having a loss component applied to the latent representation, ensuring that the encoding follows a prior distribution, which is $N(0, I)$ in our case. Because of that, we can expect the $\mu$ and $\sigma$ layers of new inlier instances to have a small Kullbach-Leibler distance from a $N(0, I)$ distribution. Kullbach-Leibler (KL) distance is a measure a distance between 2 distributions. At the opposite, new outlier instances should have $\mu$ and $\sigma$ layers that are further from the prior distribution, so a greater KL distance. The proposed methodologie to compute $p$-values is describe in the algorithm \ref{anomaly_algo}.
+In our approach, we suppose we have access to a dataset that contains mostly "normal" observations. Considering we have access to such dataset, we use a variational autoencoder to learn the distribution of that "normal" population. That distribution is essentially contained in the hidden representation, or more specifically in the layers $\mu$ and $\sigma$ of the VAE. Like we described in the section \ref{background-vae}, VAE has the particularity of having a loss component applied to the latent representation, ensuring that this latent encoding follows a prior distribution, which is $N(0, I)$ in our case. Once we have trained the autoencoder, we can use the parameters of the encoder part of the model to encode each instances of our dataset into a $\mu$ and $\sigma$ vectors. As a simple approach, we can average these two vectors to summarize the dataset information into two new vectors: $\hat{\mu}$ and $\hat{\sigma}$. Suppose our dataset contains $n$ observations and we encoded our latent representation so that we have $k$ latent dimensions, the $i$ element of the $\hat{\mu}$ and $\hat{\sigma}$ vectors are given by:
+
+\begin{gather*}
+	\mu^{(i)} = \frac{1}{n} \sum_{k=1}^{n} \mu^{(k)} \\
+	\sigma^{(i)} = \frac{1}{n} \sum_{k=1}^{n} \sigma^{(k)}
+\end{gather*}
+
+
+Because of that, we can expect the $\mu$ and $\sigma$ layers of new "normal" instances to have a small Kullbach-Leibler distance from a $N(0, I)$ distribution. Kullbach-Leibler (KL) distance is a measure a distance between 2 distributions. At the opposite, new outlier instances should have $\mu$ and $\sigma$ layers that are further from the prior distribution, so a greater KL distance. The proposed methodologie to compute $p$-values is describe in the algorithm \ref{anomaly_algo}.
 \newline
 
 \begin{center}

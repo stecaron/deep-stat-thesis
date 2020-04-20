@@ -17,7 +17,7 @@ from src.mnist.vae import ConvVAE
 from src.mnist.vae import ConvLargeVAE
 from src.mnist.utils.train import train_mnist_vae
 from src.mnist.utils.evaluate import to_img
-from src.utils.empirical_pval import compute_pval_loaders
+from src.utils.empirical_pval import compute_pval_loaders, compute_pval_loaders_mixture
 from src.mnist.utils.stats import test_performances
 
 # Create an experiment
@@ -29,17 +29,17 @@ experiment.add_tag("mnist_vae")
 # General parameters
 DOWNLOAD_MNIST = False
 PATH_DATA = os.path.join(os.path.expanduser("~"),
-                              'data/mnist')
+                              'Downloads/mnist')
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 
 # Define training parameters
 hyper_params = {
-    "EPOCH": 30,
+    "EPOCH": 50,
     "BATCH_SIZE": 256,
-    "NUM_WORKERS": 10,
+    "NUM_WORKERS": 0,
     "LR": 0.001,
-    "TRAIN_SIZE": 4000,
+    "TRAIN_SIZE": 1000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 500,
     "TEST_NOISE": 0.1,
@@ -50,10 +50,10 @@ hyper_params = {
     "LATENT_DIM": 50,  # latent distribution dimensions
     "ALPHA": 0.1, # level of significance for the test
     "BETA_epoch": [5, 10, 25],
-    "BETA": [0, 1, 0.0001],  # hyperparameter to weight KLD vs RCL
+    "BETA": [0, 10, 1],  # hyperparameter to weight KLD vs RCL
     "MODEL_NAME": "mnist_vae_model",
     "LOAD_MODEL": False,
-    "LOAD_MODEL_NAME": "mnist_vae_model.pt"
+    "LOAD_MODEL_NAME": "mnist_vae_model"
 }
 
 # Log experiment parameters
@@ -110,7 +110,7 @@ test_loader = Data.DataLoader(dataset=test_data,
                               shuffle=False,
                               num_workers=hyper_params["NUM_WORKERS"])
 
-scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyper_params["LR"], steps_per_epoch=len(train_loader), epochs=hyper_params["EPOCH"])
+#scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyper_params["LR"], steps_per_epoch=len(train_loader), epochs=hyper_params["EPOCH"])
 
 if hyper_params["LOAD_MODEL"]:
     model = torch.load(hyper_params["LOAD_MODEL_NAME"])
@@ -120,7 +120,7 @@ else :
                     criterion=optimizer,
                     n_epoch=hyper_params["EPOCH"],
                     experiment=experiment,
-                    scheduler=scheduler,
+                    #scheduler=scheduler,
                     beta_list=hyper_params["BETA"],
                     beta_epoch=hyper_params["BETA_epoch"],
                     model_name=hyper_params["MODEL_NAME"],
@@ -130,11 +130,13 @@ else :
 
 # Compute p-values
 model.to(device)
-pval, _ = compute_pval_loaders(train_loader,
+pval, _ = compute_pval_loaders_mixture(train_loader,
                                test_loader,
                                model,
-                               device=device)
-pval = 1 - pval #we test on the tail
+                               device=device,
+                               method="mean",
+                               experiment=experiment)
+#pval = 1 - pval #we test on the tail
 pval_order = numpy.argsort(pval)
 
 # Plot p-values
