@@ -1,0 +1,219 @@
+\chapter{Contexte}     % numéroté
+\label{chap:background}                   % étiquette pour renvois (à compléter!)
+
+En premier lieu, nous allons faire un résumé de la théorie derrière les autoencodeurs et comment ceux-ci sont-ils pertinents dans un contexte de détection d'anomalies. Ensuite, nous allons décrire plus en détails un type particulier d'autoencodeur utilisé dans cette étude, soit l'autoencodeur variationnel. Finalement, nous allons couvrir quelques notions de base quant aux tests d'hypothèses, un cadre statistique classique pour prendre des décisions.
+
+\subsection{Les autoencodeurs}
+
+Un autoencodeur est un réseau de neurones qui a comme objectif d'apprendre une représentation intermédiaire et efficiente d'une entrée de manière non-supervisée (\cite{Goodfellow-et-al-2016}). Pour réaliser cette objectif, l'autoencodeur se décompose en 2 composantes: un encodeur et un décodeur. L'encodeur reçoit en entrée $x$ et convertit celui-ci vers une représentation latente $z$. Le décodeur prend en entrée cette représentation latente $z$ et la décode pour ainsi retrouver le plus possible l'entrée initiale $x$. Cette structure de base est illustrée dans la figure \ref{fig:basicAE}. Historiquement, les autoencodeurs étaient vues comme une méthode de réduction de dimensionnalité, mais désormais ceux-ci ont davantage d'applications dû au fait qu'il peuvent apprendre des variables latentes riches en informations. \newline
+
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}[shorten >=1pt,draw=black!50, node distance=\layersep, square/.style={regular polygon,regular polygon sides=4}]
+	\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+	\tikzstyle{neuron}=[square,fill=black!25,minimum size=17pt,inner sep=0pt]
+	\tikzstyle{input neuron}=[neuron, fill=green!50];
+	\tikzstyle{output neuron}=[neuron, fill=red!50];
+	\tikzstyle{hidden neuron1}=[neuron, fill=blue!50];
+	\tikzstyle{hidden neuron2}=[neuron, fill=blue!50];
+	\tikzstyle{hidden rep}=[neuron, fill=yellow!50];
+	\tikzstyle{annot} = [text width=4em, text centered]
+	
+	% Draw the input layer nodes
+	\foreach \name / \y in {1,...,4}
+	% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+	\node[input neuron] (I-\name) at (0,-\y) {};
+	
+	% Draw the hidden layer nodes n.1
+	\foreach \name / \y in {1,...,2}
+	\path[yshift=-1cm]
+	node[hidden neuron1] (H1-\name) at (\layersep,-\y cm) {};
+	
+	% Draw the encoded representation
+	\foreach \name / \y in {1,...,1}
+	\path[yshift=-1.5cm]
+	node[hidden rep] (R-\name) at (2 * \layersep,-\y cm) {};
+	
+	% Draw the hidden layer nodes n.2
+	\foreach \name / \y in {1,...,2}
+	\path[yshift=-1cm]
+	node[hidden neuron1] (H2-\name) at (3 * \layersep,-\y cm) {};
+	
+	% Draw the output layer
+	\foreach \name / \y in {1,...,4}
+	% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+	\node[output neuron] (O-\name) at (4 * \layersep,-\y cm) {};
+	
+	% Connect input
+	\foreach \source in {1,...,4}
+	\foreach \dest in {1,...,2}
+	\path (I-\source) edge (H1-\dest);
+	
+	% Connect representation
+	\foreach \source in {1,...,2}
+	\foreach \dest in {1,...,1}
+	\path (H1-\source) edge (R-\dest);
+	
+	\foreach \source in {1,...,1}
+	\foreach \dest in {1,...,2}
+	\path (R-\source) edge (H2-\dest);
+	
+	% Connect outputs
+	\foreach \source in {1,...,2}
+	\foreach \dest in {1,...,4}
+	\path (H2-\source) edge (O-\dest);
+	
+	% Annotate the layers
+	\node[annot,above of=I-1, node distance=1cm] (hl) {Couche d'entrée ($x$)};
+	\node[annot,above of=R-1, node distance=2.5cm][text width=8em] (hl) {Représentation \\ latente ($z$)};
+	\node[annot,above of=O-1, node distance=1cm] (hl) {Couche de sortie ($x$)};
+	
+	\draw [decorate,decoration={brace,mirror,amplitude=15pt},xshift=-4pt,yshift=-2cm]
+	(0,-2.5) -- (4,-2.5) node [black,midway,yshift=-3em] 
+	{\footnotesize encoder: $q_{\theta}(x)$};
+	\draw [decorate,decoration={brace,mirror,amplitude=15pt},xshift=4pt,yshift=-2cm]
+	(4,-2.5) -- (8,-2.5) node [black,midway,yshift=-3em] 
+	{\footnotesize decoder: $p_{\phi}(z)$};
+	
+	\end{tikzpicture}
+	\caption{Exemple illustrant la structure de base d'un autoencodeur. Dans le cas ci-dessus, on pourrait interpréter le schéma comme un réseau pleinement connecté où les blocs pourraient représentés les neurones et les liens seraient les poids, ou les paramètres du réseau. Le concept s'applique également à une architecture de réseau à convolutions, où les paramètres appris sont les filtres de convolutions.}
+	\label{fig:basicAE}
+\end{figure}
+
+L'intuition derrière les autoencodeurs est essentiellement de reconstruire une entrée $x$ en passant par 2 composantes ou fonctions (l'encodeur et le décodeur) apprises par le modèle. Ainsi, ce genre de méthode n'a pas besoin d'une étiquette $y$, car son objectif est basée sur $x$ directement. C'est d'ailleurs pour cela qu'on parle d'une approche d'apprentissage non-supervisée. L'apprentissage des paramètres est fait en grande partie en minimisant l'erreur de reconstruction. La perte peut donc être définie par une fonction de la forme :
+
+$$
+L(x, p_\phi{\{q_\theta(x)\}})
+$$
+
+\noindent où $q(x, \theta)$ est l'encodeur et $p(z,\phi)$ est le décodeur. L'optimisation de cette fonction de perte est faite par descente du gradient. En d'autres mots, les paramètres de l'encodeur et du décodeur sont fait graduellement en prenant la dérivée de la fonction de perte par rapport aux différents paramètres de ces deux composantes:
+
+
+\begin{equation} \label{optim}
+\Theta \leftarrow \Theta-\epsilon*\frac{\partial L}{\partial\Theta}
+\end{equation}
+
+\noindent où $\epsilon$ est un taux d'apprentissage qui permet de moduler la vitesse d'apprentissage et $\Theta : \{\theta, \phi\}$ comprend les paramètres de l'encodeur et du décodeur.
+
+Une fois que l'autoencodeur est entraîné adéquatement, il est possible d'utiliser l'erreur de reconstruction comme score d'anomalie. En effet, une donné mal reconstruite pourrait être vue comme une donnée aberrante, ou une donnée que le réseau n'a pas eu l'habitude de voir lors de l'entraînement. Dans  \cite{10.5555/3086742}, ce genre de méthode de détection d'anomalies fait partie de la catégorie des algorithmes basés sur les modèles linéaires ou non-linéaires. Dans ce groupe de méthodes, on commence par ajuster un modèle linéaire ou non-linéaire et on utilise l'erreur de reconstruction, ou le résidu, comme indicateur d'anomalie. Les méthodes basées sur les régressions linéaires, l'analyse en composantes principales (PCA) or la factorisation de matrices font également parties de cette large catégorie de méthodes de détection d'anomalies. Par contre, la reconstruction n'est pas le seul critère qui peut être utilisé pour entraîner un autoencodeur. Dans la prochaine section, nous allons couvrir un type précis d'autoencodeur, soit l'autoencodeur variationnel. Nous verrons également quelle autre composante peut être utilisée comme score d'anomalie.
+
+\subsection{Les autoencodeurs variationnels} \label{background-vae}
+
+Les autoencodeurs variationnels (VAE)  \cite{kingma2013autoencoding} ont une approche légèrement différente des autres autoencodeurs. En effet, au lieu d'encoder les données dans un vecteur de variables latentes à $p$ dimensions, les données sont plutôt encodées dans 2 vecteurs de taille $p$: un vecteur de moyennes $\boldsymbol \mu$ et un vecteur de déviations standards $\boldsymbol \sigma$. Ces deux vecteurs sont ensuite utilisés pour générer la représentation latente à $p$ dimensions, qui est en fait une simulation d'une loi normale multivariée avec les paramètres $\boldsymbol \mu$ et $\boldsymbol \sigma$. Cela permet donc d'obtenir pour une donnée $x$, une représentation latente continue. C'est d'ailleurs la particularité la plus importante des VAE par rapport aux autres autencodeurs. Dans d'autres mots, les autoencodeurs de base ont comme objectif d'apprendre une représentation latente qui pointe à quelque part dans cet espace latent, alors que les VAE apprennent une représentation qui pointe vers une zone de cette espace latent. Cette zone est effectivement définit par les paramètres $\boldsymbol \mu$ et $\boldsymbol \sigma$ associés à une entrée donnée. Cela veut aussi dire qu'une fois l'algorithme entraîné, la sortie  de celui-ci est stochastique dans le sens où une entrée $x$ peut donner 2 sorties différentes. Cependant, une donnée $x$ va donner toujours les mêmes valeurs de $\boldsymbol \mu$ et $\boldsymbol \sigma$, cette composante n'est pas stochastique. La figure \ref{fig:VAEstructure} illustre la structure de base des autoencodeurs variationnels. Dans la figure, on peut remarquer que les données en entrée commencent par passer par des couches cachées, qui peuvent être pleinement connectées ou de convolutions. Cette partie est l'encodeur ($q_{\theta}(x)$). Un peu avant d'arriver à la représentation latente, le réseau se divise en 2 composantes ($\boldsymbol \mu$ et $\boldsymbol \sigma$). La représentation latente $z$ est ensuite générée en simulant d'une loi normale multivariée avec les paramètres correspondant aux couches précédentes. Une fois la représentation $z$ générée, celle-ci est décodée jusqu'au format original par des couches pleinement connectées ou des couches de déconvolution. Cette partie est le décodeur ($p_{\phi}(z)$).
+
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}[shorten >=1pt,draw=black!50, node distance=\layersep, square/.style={regular polygon,regular polygon sides=4}]
+	\tikzstyle{every pin edge}=[<-,shorten <=1pt]
+	\tikzstyle{neuron}=[square,fill=black!25,minimum size=17pt,inner sep=0pt]
+	\tikzstyle{input neuron}=[neuron, fill=blue!50];
+	\tikzstyle{output neuron}=[neuron, fill=blue!50];
+	\tikzstyle{hidden neuron1}=[neuron, fill=blue!50];
+	\tikzstyle{hidden neuron2}=[neuron, fill=blue!50];
+	\tikzstyle{sample rep}=[neuron, fill=yellow!50];
+	\tikzstyle{hidden rep}=[neuron, fill=red!50];
+	\tikzstyle{annot} = [text width=4em, text centered]
+	
+	% Draw the input layer nodes
+	\foreach \name / \y in {1,...,4}
+	% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+	\node[input neuron] (I-\name) at (0,-\y) {};
+	
+	% Draw the hidden layer nodes n.1
+	\foreach \name / \y in {1,...,3}
+	\path[yshift=-0.5cm]
+	node[hidden neuron1] (H1-\name) at (\layersep,-\y cm) {};
+	
+	% Draw the mu and sigma layers
+	\foreach \name / \y in {1,...,2}
+	\path[yshift=-1cm]
+	node[hidden rep] (R-\name) at (2 * \layersep,-\y cm) {};
+	
+	% Draw the encoded representation
+	\foreach \name / \y in {1,...,1}
+	\path[yshift=-1.5cm]
+	node[sample rep] (S-\name) at (3 * \layersep,-\y cm) {};
+	
+	% Draw the hidden layer nodes n.2
+	\foreach \name / \y in {1,...,3}
+	\path[yshift=-0.5cm]
+	node[hidden neuron1] (H2-\name) at (4 * \layersep,-\y cm) {};
+	
+	% Draw the output layer
+	\foreach \name / \y in {1,...,4}
+	% This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+	\node[output neuron] (O-\name) at (5 * \layersep,-\y cm) {};
+	
+	% Connect input
+	\foreach \source in {1,...,4}
+	\foreach \dest in {1,...,3}
+	\path (I-\source) edge (H1-\dest);
+	
+	% Connect hidden 1 with mu and sigma
+	\foreach \source in {1,...,3}
+	\foreach \dest in {1,...,2}
+	\path (H1-\source) edge (R-\dest);
+	
+	% Connect representation
+	\foreach \source in {1,...,2}
+	\foreach \dest in {1,...,1}
+	\path (R-\source) edge (S-\dest);
+	
+	\foreach \source in {1,...,1}
+	\foreach \dest in {1,...,3}
+	\path (S-\source) edge (H2-\dest);
+	
+	% Connect outputs
+	\foreach \source in {1,...,3}
+	\foreach \dest in {1,...,4}
+	\path (H2-\source) edge (O-\dest);
+	
+	% Annotate the layers
+	\node[annot,above of=I-1, node distance=1cm] (hl) {Input layer ($x$)};
+	\node[annot,above of=S-1, node distance=0cm][text width=8em] (hl) {$\boldsymbol z$};
+	\node[annot,above of=S-1, node distance=1cm][text width=8em] (hl) {$ q(z) \sim N(\boldsymbol \mu, \boldsymbol \sigma)$};
+	\node[annot,above of=R-1, node distance=0cm][text width=8em] (hl) {$\boldsymbol \mu$};
+	\node[annot,above of=R-2, node distance=0cm][text width=8em] (hl) {$\boldsymbol \sigma $};
+	\node[annot,above of=O-1, node distance=1cm] (hl) {Output layer ($x$)};
+	
+	\draw [decorate,decoration={brace,mirror,amplitude=15pt},xshift=-4pt,yshift=-2cm]
+	(0,-2.5) -- (6,-2.5) node [black,midway,yshift=-3em] 
+	{\footnotesize encoder: $q_{\theta}(x)$};
+	\draw [decorate,decoration={brace,mirror,amplitude=15pt},xshift=4pt,yshift=-2cm]
+	(6,-2.5) -- (10,-2.5) node [black,midway,yshift=-3em] 
+	{\footnotesize decoder: $p_{\phi}(z)$};
+	
+	\end{tikzpicture}
+	\caption{Structure de base d'un autoencodeur variationnel. La représentation latente $z$ est générée en simulant de la loi $q(z)$,  qui suit une loi normale multivariée avec les paramètres $\boldmath \mu$ et $\boldmath \sigma$ calculés par le réseau. C'est de là que vient la composante stochastique du modèle.}
+	\label{fig:VAEstructure}
+\end{figure}
+
+Les autoencodeurs variationnels sont également différents quant au calcul de perte qui est essentiel à l'optimisation du réseau. En effet, on ajoute une autre composante de perte à l'erreur de reconstruction de base. La fonction de perte est désormais définit comme une somme de deux composantes:
+
+$$
+L(x, p_\phi\{q_\theta(x)\}) + D_{KL}\big[q_\theta(z|x) || p(z)\big]
+$$
+
+où $D_{KL}$ est une divergence de Kullback-Leibler. L'objectif de cette nouvelle composante est de s'assurer que la distribution encodée $q(z)$ et la distribution à priori $p(z)$ sont similaires. La distribution à priori $p(z)$ est une loi normale multivariée $N(0, I)$. Si cette composante de perte est suffisamment prise en compte lors de l'optimisation, nous devrions donc obtenir des paramètres $\boldmath \mu$ et $\boldmath \sigma$ se rapprochant d'un vecteur de 0 et un vecteur de 1. Dans ce cas-ci, nous assumons l'indépendance entre les variables latentes, ce qui nous permet de définir $\boldmath \sigma$ comme un vecteur et non une matrice. Ce vecteur devient donc la diagonale de la matrice de variance-covariance.
+
+Comme expliquée un peu plus tôt, la représentation latente de ce type d'autoencodeur est simulé d'une loi normale multivariée, donc stochastique. Cela pourrait en théorie rendre complexe la tâche d'optimisation du réseau. En effet, les paramètres du réseau, soit ceux de l'encodeur et du décodeur, sont optimisés par descente du gradient. On calcule donc la perte la perte $L(x)$ et on dérive cette fonction par rapport à chaque paramètres du réseau. Mais qu'en est-il de la loi normale multivariée qui à généré notre représentation latente? Afin de simplifier le calcul des dérivées lors de la rétropropagation, on redéfinit le calcul de la représentation $z$ dans un format plus simple. Cette simplification s'appelle la "reparametrization trick". En effet, il est possible pour certaines distributions, comme la loi normale, de séparer les paramètres ($\mu$ et $\sigma$)  de la composante stochastique. Concrètement, on peut définir une simulation normale multivariée comme:
+
+$$
+z = \mu + \sigma \odot \epsilon
+$$
+
+\noindent où $\epsilon \sim N(0,1)$. En bref, cela signifie que la couche $z$, illustrée dans la figure \ref{fig:VAEstructure}, est générée à partir de deux couches de paramètres $\boldmath \mu$ et $\boldmath \sigma$ et d'une simulation $N(0,1)$. Cela veut donc dire que la rétropropagation peut ignorer la composante stochastique et calculer les dérivées des couches de paramètres seulement, ce qui simplifie beaucoup le processus d'optimisation.
+
+Au final, la composante de perte associée au critère de divergence de Kullbach-Leibler apporte de la régularisation au modèle, en restreignant celui-ci dans un certain espace (\cite{kingma2013autoencoding}). UN PEU PLUS DE JUICE SUR LA RÉGULARISATION.
+
+
+\subsection{Hypothesis testing}
+
+Les tests d'hypothèse sont une méthode d'inférence statistique. L'objectif est de tester une hypothèse nulle ($H_0$) par rapport à une hypothèse alternative ($H_1$). Dans le contexte de détection d'anomalie, nous pourrions utiliser ce cadre d'inférence pour tester si une certaine observation provient d'une population attendue : \newline
+
+\noindent $\boldsymbol{H_0}$: $x_i$ provient de la population $P$ \\
+$\boldsymbol{H_1}$: $x_i$ ne provient pas de la population $P$
+\newline
+
+\noindent Une fois que nous avons définit une structure de test, soit l'hypothèse à confirmer ou infirmer, il faut se définir un cadre précis nous permettant de mettre en application ce test. Cela passe généralement par une hypothèse à priori à propos de notre échantillon de test. Cette hypothèse se décompose généralement en deux parties: une distribution attendue et une statistique de test. Avec ces deux composantes, on peut généralement calculer une valeur-$p$. La valeur-$p$ est définit comme la probabilité, sous l'hypothèse nulle, d'observer la statistique de test de la distribution attendue. Quand la valeur-$p$ est petite, cela signifie qu'il est peu probable d'observer l'observation sous l'hypothèse nulle. L'hypothèse nulle est généralement rejetée lorsque la valeur-$p$ est plus petite qu'un certain seuil $\alpha$. Ce seuil est également appelé le seuil de confiance. Lorsque l'hypothèse nulle est vraie et que la variable testée est continue, alors la distribution de cette valeur-$p$ est distribuée de manière uniforme sur l'intervalle [0, 1]. Dans ce projet, un de nos objectif est de bénéficier de ce cadre d'inférence statistique en utilisant un seuil de confiance, plutôt qu'une métrique quelconque pour détecter les anomalies.
+

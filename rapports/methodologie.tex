@@ -1,0 +1,85 @@
+\section{Methodology}
+
+We propose an anomaly detection framework where we use the hidden representation of a variational autoencoder and transform that representation to a metric we can apply hypothesis testing. Ultimately, that hypothesis testing allows us to detect anomalies with a certain level of significance.
+
+\subsection{Approach}
+
+In our approach, we suppose we have access to a dataset that contains mostly "normal" observations. Considering we have access to such dataset, we use a variational autoencoder to learn the distribution of that "normal" population. That distribution is essentially contained in the hidden representation, or more specifically in the layers $\mu$ and $\sigma$ of the VAE. Like we described in the section \ref{background-vae}, VAE has the particularity of having a loss component applied to the latent representation, ensuring that this latent encoding follows a prior distribution, which is $N(0, I)$ in our case. Once we have trained the autoencoder, we can use the parameters of the encoder part of the model to encode each instances of our dataset into a $\mu$ and $\sigma$ vectors. As a simple approach, we can average these two vectors to summarize the dataset information into two new vectors: $\hat{\mu}$ and $\hat{\sigma}$. Suppose our dataset contains $n$ observations and we encoded our latent representation so that we have $k$ latent dimensions, the $i$ element of the $\hat{\mu}$ and $\hat{\sigma}$ vectors are given by:
+
+\begin{gather*}
+\mu^{(i)} = \frac{1}{n} \sum_{k=1}^{n} \mu^{(k)} \\
+\sigma^{(i)} = \frac{1}{n} \sum_{k=1}^{n} \sigma^{(k)}
+\end{gather*}
+
+
+Because of that, we can expect the $\mu$ and $\sigma$ layers of new "normal" instances to have a small Kullbach-Leibler distance from a $N(0, I)$ distribution. Kullbach-Leibler (KL) distance is a measure a distance between 2 distributions. At the opposite, new outlier instances should have $\mu$ and $\sigma$ layers that are further from the prior distribution, so a greater KL distance. The proposed methodologie to compute $p$-values is describe in the algorithm \ref{anomaly_algo}.
+\newline
+
+\begin{center}
+	\begin{algorithm}[H] \label{anomaly_algo}
+		\SetAlgoLined
+		\KwIn{Inliers dataset $x^{(j)}, j=1,...,m$, \\ Testing dataset with unknown anomalies $y^{(i)}, i=1, ..., n$}
+		\KwOut{$p$-values for all test instances $p^{(i)}, i=1,...,n$}
+		$\theta$, $\phi$ $\leftarrow$ train encoder ($q_{\theta}(x)$) and decoder ($p_{\phi}(z)$) VAE parameters\;
+		\For{j=1 to m}{
+			$\mu^{(j)} = p_{\theta}(x^{(j)})["mu"]$\;
+			$\sigma^{(j)} = p_{\theta}(x^{(j)})["sd"]$\;
+			$kl^{(j)}=kl\_distance(\mu^{(j)}, \sigma^{(j)})$
+		}
+		$kl\_sorted = sort(kl)$\;
+		\For{i=1 to n}{
+			$\mu^{(i)} = p_{\theta}(y^{(i)})["mu"]$\;
+			$\sigma^{(i)} = p_{\theta}(y^{(i)})["sd"]$\;
+			$kl_test^{(j)}=kl\_distance(\mu^{(i)}, \sigma^{(i)})$\;
+			$p^{(i)} = Q_{kl\_sorted}(kl\_test)$ where Q is the quantile
+		}
+		\KwRet{$\boldsymbol{p}$}
+		\caption{VAE anomaly detection algorithm}
+	\end{algorithm}
+\end{center}
+
+In our proposed approach, the $p$-value is computed from an empirical distribution, which is the Kullbach-Leibler distances of all training instances. At the end, we are testing if a new observation is coming from the inliers population :
+
+\begin{center}
+	$\boldsymbol{H_0}$: $y^{(i)}$ comes from the population $X$ \\
+	$\boldsymbol{H_1}$: $y^{(i)}$ does not come from the population $X$
+\end{center}
+
+\noindent Because we made the hypothesis that $X$ is mostly, if not entirely, inliers, we could rephrase our test :
+
+\begin{center}
+	$\boldsymbol{H_0}$: $y^{(i)}$ is an inlier \\
+	$\boldsymbol{H_1}$: $y^{(i)}$ is an outlier
+\end{center}
+
+Finally, once we have the $p$-values of all instances of test dataset, we can use a level of significance $\alpha$ to conclude if it's an outlier (see the algorithm \ref{test_algo}).
+
+\begin{center}
+	\begin{algorithm}[H] \label{test_algo}
+		\SetAlgoLined
+		\KwIn{$p$-values for all test instances $p^{(i)}, i=1,...,n$, \\ level of significance $\alpha$}
+		\KwOut{outlier indicators $o^{(i)}, i=1,...,n$}
+		\For{i=1 to n}{
+			\eIf{$p^{(i)} < \alpha$}{
+				$o^{(i)}$ = $true$
+			}
+			{
+				$o^{(i)}$ = $false$
+			}
+		}
+		\KwRet{$\boldsymbol{o}$}
+		\caption{Outlier decision algorithm}
+	\end{algorithm}
+\end{center}
+
+\subsection{Adapt for complex data}
+
+Parler de pourquoi utiliser les representation encoder pour le test au lieu de l'erreur de reconstruction. Peut-etre parler de la perceptual loss pour dealer avec une reconstruction difficile pour des images complex.
+
+\subsection{Hypothesis testing advantages}
+
+Parler du fait que c'est simple de definir un level of significance versus trouver une metric quelconque.
+\chapter{Méthodologie}     % numéroté
+\label{chap:methodologie}                   % étiquette pour renvois (à compléter!)
+
+
