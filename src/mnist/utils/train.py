@@ -5,6 +5,7 @@ import torch
 from src.mnist.utils.loss_vae import calculate_loss
 from src.cars.loss.perceptual_loss import LossNetwork
 from src.mnist.utils.loss_vae import perceptual_loss
+from src.cars.loss.perceptual_loss import preprocess_vgg16
 
 
 def train_mnist(train_loader,
@@ -71,12 +72,12 @@ def train_mnist_vae(train_loader,
                     criterion,
                     n_epoch,
                     experiment,
-                    #scheduler,
                     beta_list,
                     beta_epoch,
                     model_name,
                     device,
                     loss_type="binary",
+                    vgg_preprocess=True,
                     flatten=True):
     # set the train mode
     model.train()
@@ -89,11 +90,6 @@ def train_mnist_vae(train_loader,
 
     for epoch in range(n_epoch):
         train_loss = 0.0
-
-        list_mu_maj = []
-        list_mu_min = []
-        list_var_maj = []
-        list_var_min = []
 
         step = 0
         for beta_step in beta_epoch:
@@ -109,6 +105,9 @@ def train_mnist_vae(train_loader,
             # reshape the data into [batch_size, 784]
             if flatten:
                 x = x.view(-1, 28 * 28)
+
+            if vgg_preprocess:
+                x = preprocess_vgg16(x, device=device)
 
             model.to(device)
             x = x.to(device)
@@ -126,30 +125,14 @@ def train_mnist_vae(train_loader,
             loss.backward()
             train_loss += loss.item()
             criterion.step()
-            #scheduler.step()
 
             z_mu = z_mu.cpu()
             z_var = z_var.cpu()
             y = y.cpu()
 
-            list_mu_maj.append(torch.mean(torch.mean(z_mu[numpy.where(y == 0)], 0)))
-            list_mu_min.append(torch.mean(torch.mean(z_mu[numpy.where(y != 0)], 0)))
-            list_var_maj.append(torch.mean(torch.mean(torch.exp(z_var[numpy.where(y == 0)]), 0)))
-            list_var_min.append(torch.mean(torch.mean(torch.exp(z_var[numpy.where(y != 0)]), 0)))
-
 
         train_loss = train_loss / len(train_loader) * train_loader.batch_size
         KLD_perc = numpy.around((KLD / loss).cpu().detach().numpy(), 2)
-
-        mean_mu_maj = sum(list_mu_maj)/len(list_mu_maj)
-        mean_mu_min = sum(list_mu_min)/len(list_mu_min)
-        mean_var_maj = sum(list_var_maj)/len(list_var_maj)
-        mean_var_min = sum(list_var_min)/len(list_var_min)
-
-        experiment.log_metric("mean_mu_maj", mean_mu_maj.detach().cpu())
-        experiment.log_metric("mean_mu_min", mean_mu_min.detach().cpu())
-        experiment.log_metric("mean_var_maj", mean_var_maj.detach().cpu())
-        experiment.log_metric("mean_var_min", mean_var_min.detach().cpu())
 
         end = time.time()
         print(
