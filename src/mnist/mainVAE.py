@@ -174,13 +174,15 @@ experiment.log_figure(figure_name="empirical_test_hypothesis",
 plt.show()
 
 # Compute some stats
-precision, recall, f1_score = test_performances(pval, index, hyper_params["ALPHA"])
+precision, recall, f1_score, roc_auc = test_performances(pval, index, hyper_params["ALPHA"])
 print(f"Precision: {precision}")
 print(f"Recall: {recall}")
 print(f"F1 Score: {f1_score}")
+print(f"AUC: {roc_auc}")
 experiment.log_metric("precision", precision)
 experiment.log_metric("recall", recall)
 experiment.log_metric("f1_score", f1_score)
+experiment.log_metric("auc", roc_auc)
 
 # Show some examples
 
