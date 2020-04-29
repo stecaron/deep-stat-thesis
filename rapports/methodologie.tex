@@ -88,9 +88,11 @@ Finalement, une fois que nous avons notre test statistique de définit, nous pou
 
 \section{Approche pour des données complexes}
 
-Parler de pourquoi utiliser les representation encoder pour le test au lieu de l'erreur de reconstruction. Peut-etre parler de la perceptual loss pour dealer avec une reconstruction difficile pour des images complex.
+Un des objectifs de notre approche est de faire la détection d'anomalies parmi des données qui sont complexes, comme par exemple des images réelles. Sachant ce niveau de complexité, il faut que la méthodologie soit adaptée à ce contexte. Tout d'abord, il est pertinent de mentionner que le choix  d'utiliser des réseaux de neurones, plus particulièrement des autoencodeurs, est étroitement liée à ce concept de complexité. En effet, les réseaux de neurones ont le potentiel de stocker beaucoup d'informations au travers des nombreux paramètres du réseaux. De plus, les réseaux à convolutions sont également bien adaptés aux domaine de l'imagerie en prenant en compte l'information de manière locale dans l'image. Dans la prochaines sous-sections, nous allons présenter d'autres spécifications de l'approche qui permettent de prendre en compte cette complexité.
 
 \subsection{Représentation latentes}
+
+
 
 \subsection{Perceptual loss}
 
