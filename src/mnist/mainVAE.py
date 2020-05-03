@@ -35,15 +35,15 @@ device = "cpu"
 
 # Define training parameters
 hyper_params = {
-    "EPOCH": 50,
+    "EPOCH": 30,
     "BATCH_SIZE": 256,
     "NUM_WORKERS": 0,
     "LR": 0.001,
-    "TRAIN_SIZE": 1000,
+    "TRAIN_SIZE": 4000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 500,
     "TEST_NOISE": 0.1,
-    "CLASS_SELECTED": [7],  # on which class we want to learn outliers
+    "CLASS_SELECTED": 7,  # on which class we want to learn outliers
     "CLASS_CORRUPTED": [0, 2, 3, 6],  # which class we want to corrupt our dataset with
     #"INPUT_DIM": 28 * 28,  # In the case of MNIST
     #"HIDDEN_DIM": 256,  # hidden layer dimensions (before the representations)
@@ -99,6 +99,9 @@ train_data.targets = train_data.targets[id_train]
 
 test_data.data = test_data.data[id_test]
 test_data.targets = test_data.targets[id_test]
+
+train_data.targets = 1 - (train_data.targets == hyper_params["CLASS_SELECTED"]).type(torch.int32)
+test_data.targets = 1 - (test_data.targets == hyper_params["CLASS_SELECTED"]).type(torch.int32)
 
 train_loader = Data.DataLoader(dataset=train_data,
                                batch_size=hyper_params["BATCH_SIZE"],
