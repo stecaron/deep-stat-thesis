@@ -69,18 +69,8 @@ class DataGenerator(Dataset):
         label = self.labels[index]
 
         with open(filename, 'rb') as f:
-            #image = numpy.array(load_image(f))[..., :3]
             image = load_image(f)
 
-        #image = numpy.swapaxes(image, 0, 2)
-        #image = numpy.swapaxes(image, 1, 2)
-
-        #seq = iaa.Sequential([
-        #    iaa.Resize((224, 224))
-        #])
-
-        #image = transform.resize(image, self.image_size)
-        #image = seq(images=image)
         img_tensor = self.transform(image).type(torch.FloatTensor)
         img_tensor.transpose_(1, 2)
 

@@ -1,85 +1,164 @@
 \chapter{Méthodologie}     % numéroté
 \label{chap:methodologie}                   % étiquette pour renvois (à compléter!)
 
+Le cœur de notre travail consiste à proposer une méthode de détection d'anomalies où nous utilisons la représentation latente d'un autoencodeur variationnel. Cette représentation sera transformée vers une métrique que nous pourrons utiliser dans un le cadre d'un test d'hypothèse. Ce test d'hypothèse nous permet donc de détecter des anomalies avec un niveau de confiance.
 
-\section{Methodology}
+\section{Les hypothèses de l'approche}
 
-We propose an anomaly detection framework where we use the hidden representation of a variational autoencoder and transform that representation to a metric we can apply hypothesis testing. Ultimately, that hypothesis testing allows us to detect anomalies with a certain level of significance.
+Dans notre approche, nous supposons que  nous avons accès à un jeu de données qui contient presque qu'entièrement des observations normales. En d'autres mots, il n'y pratiquement pas d'anomalies. Par contre, nous anticipons des entrées anormales dans le futur et nous voulons les détecter. Voici 2 exemples de situation où ce genre de contexte pourrait être plausible:
 
-\subsection{Approach}
+\begin{enumerate}
+	\item Une compagnie d'assurance propose maintenant à leurs assurés de prendre eux-mêmes des photos de leur véhicule accidenté et d'envoyer celles-ci à l'assureur. La compagnie s'attend à ce que les assurés puissent commettre des erreurs de manipulation en prenant les photos ou bien puissent envoyer les mauvaises photos. De son côté, l'assureur possède des photos de véhicules accidentés, prises par son personnel d'estimateurs, mais aucune photo erronée. Le jeu de données d'entraînement ne possède théoriquement aucune anomalie. Par contre, des anomalies sont à prévoir dans le futur et on veut les identifier.
+	\item Une entreprise manufacturière qui produit des pièces de voiture vient de se procurer un nouveau système qui automatise davantage la production. L'entreprise veut faire un suivi des pièces produites par ce nouveau système via une caméra qui inspecte les produits finaux. L'entreprise possède déjà plusieurs images de pièces qui étaient produites avant l'acquisition du nouveau système. Le résultat final produit par ce nouveau système doit être identique à l'ancien. Par contre, il est difficile de prévoir de quoi auront l'air des défectuosités produites par ce nouveau système. Le jeu de données d'entraînement est donc constitué de plusieurs exemples normales, mais aucune anomalie.
+\end{enumerate}
 
-In our approach, we suppose we have access to a dataset that contains mostly "normal" observations. Considering we have access to such dataset, we use a variational autoencoder to learn the distribution of that "normal" population. That distribution is essentially contained in the hidden representation, or more specifically in the layers $\mu$ and $\sigma$ of the VAE. Like we described in the section \ref{background-vae}, VAE has the particularity of having a loss component applied to the latent representation, ensuring that this latent encoding follows a prior distribution, which is $N(0, I)$ in our case. Once we have trained the autoencoder, we can use the parameters of the encoder part of the model to encode each instances of our dataset into a $\mu$ and $\sigma$ vectors. As a simple approach, we can average these two vectors to summarize the dataset information into two new vectors: $\hat{\mu}$ and $\hat{\sigma}$. Suppose our dataset contains $n$ observations and we encoded our latent representation so that we have $k$ latent dimensions, the $i$ element of the $\hat{\mu}$ and $\hat{\sigma}$ vectors are given by:
+\section{Description de l'approche}
+
+Considérant que nous avons accès à un jeu de données ayant les caractéristiques décrites à la section précédente, nous proposons d'entraîner un autoencoder variationnel pour apprendre les caractéristiques, ou la distribution, de cette population "normale". Cette distribution apprise sera essentiellement contenu dans la représentation latente du VAE entraîné, ou plus spécifiquement dans les couches $\mu$ et $\sigma$ du réseau. Comme nous l'avons vu dans la section \ref{background-vae}, les VAE ont la particularité d'avoir une composante de perte associée à cette représentation latente, s'assurant ainsi que celle-ci s'approche d'une distribution à priori, soit une $N(0, I)$ dans notre cas. Une fois que l'autoencodeur est entraîné, nous pouvons utiliser la partie encodeur du réseau pour transformer chacune des instances de notre jeu de données d'entraînement vers des  vecteurs $\mu$ et $\sigma$. Ces représentations latentes, encodées sous forme de vecteurs, contiennent l'information qui devrait permettre de savoir si une nouvelle instance partage ou non cette même information. Pour parvenir à faire cette conclusion sur une nouvelle instance, nous devons comparer l'information contenue de la représentation latente de cette instances avec toutes les représentations latentes de l'ensemble d'entraînement. Il est plus pratique d'agréger les représentations notre population d'entraînement en une seule représentation globale. Une manière d'y arriver est de calculer un vecteur $\bar{\mu}$ et un vecteur $\bar{\sigma}$, qui sont simplement une moyenne sur la population d'entraînement. Supposons que notre jeu de données d'entraînement contient $n$ observations et que nous encodons celles-ci vers des représentations latentes à $k$ dimensions, l'élément $i$ des vecteurs $\bar{\mu}$ et $\bar{\sigma}$ sera donné par :
 
 \begin{gather*}
-\mu^{(i)} = \frac{1}{n} \sum_{k=1}^{n} \mu^{(k)} \\
-\sigma^{(i)} = \frac{1}{n} \sum_{k=1}^{n} \sigma^{(k)}
+\bar{\mu}_{i} = \frac{1}{n} \sum_{l=1}^{n} \mu_{i}^{(l)} \\
+\bar{\sigma}_{i} = \frac{1}{n} \sum_{l=1}^{n} \sigma_{i}^{(l)}
 \end{gather*}
 
-
-Because of that, we can expect the $\mu$ and $\sigma$ layers of new "normal" instances to have a small Kullbach-Leibler distance from a $N(0, I)$ distribution. Kullbach-Leibler (KL) distance is a measure a distance between 2 distributions. At the opposite, new outlier instances should have $\mu$ and $\sigma$ layers that are further from the prior distribution, so a greater KL distance. The proposed methodologie to compute $p$-values is describe in the algorithm \ref{anomaly_algo}.
+Étant donné que les vecteurs $\bar{\mu}$ et $\bar{\sigma}$ sont essentiellement composé d'instances normales, on peut s'attendre que les vecteurs $\mu$ et $\sigma$ de nouvelles instances normales soient relativement près de ces vecteurs moyen. À l'inverse, on peut s'attendre que ces 2 mêmes vecteurs, pour des instances anormales, ou des anomalies, soient plutôt loin de ces vecteurs moyens. Maintenant, comment savoir si la représentation latente d'une nouvelle instance est proche ou éloignée de cette représentation agrégée? Étant donné que les vecteurs $\mu$ et $\sigma$ représentent les paramètres d'une loi normale multivariée, nous pouvons utiliser la distance de Kullbach-Leibler pour quantifier le degré de similitude entre la distribution moyenne et la distribution $\mu$ et $\sigma$ de la nouvelle instance. Cette même distance est d'ailleurs utilisée lors de l'optimisation pour calculer la composante de perte associée à la représentation latente. Finalement, il est possible d'utiliser les distances de KL calculées sur l'ensemble d'entraînement pour savoir si une nouvelle distance est élevée ou non. Cela devient possible étant donné que notre ensemble d'entraînement contient presque uniquement des observations normales, donc des distances de KL qui devraient être petites. On peut d'ailleurs utiliser ces distances ordonnées pour avoir une mesure de probabilité d'une nouvelle instance. La méthodologie proposée pour calculer cette mesure de probabilité, ou cette valeur-$p$ est résumé dans l'algorithme \ref{anomaly_algo}.
 \newline
+
 
 \begin{center}
 	\begin{algorithm}[H] \label{anomaly_algo}
 		\SetAlgoLined
-		\KwIn{Inliers dataset $x^{(j)}, j=1,...,m$, \\ Testing dataset with unknown anomalies $y^{(i)}, i=1, ..., n$}
-		\KwOut{$p$-values for all test instances $p^{(i)}, i=1,...,n$}
-		$\theta$, $\phi$ $\leftarrow$ train encoder ($q_{\theta}(x)$) and decoder ($p_{\phi}(z)$) VAE parameters\;
+		\KwIn{Ensemble de données d'entraînement sans anomalie $x^{(j)}, j=1,...,m$, \\ Ensemble de données de test avec anomalies $y^{(i)}, i=1, ..., n$}
+		\KwOut{Valeurs-$p$ pour chaque instance de test $p^{(i)}, i=1,...,n$}
+		$\theta$, $\phi$ $\leftarrow$ paramètres de l'encodeur ($q_{\theta}(x)$) et du  décodeur ($p_{\phi}(z)$) du VAE entraîné\;
 		\For{j=1 to m}{
 			$\mu^{(j)} = p_{\theta}(x^{(j)})["mu"]$\;
 			$\sigma^{(j)} = p_{\theta}(x^{(j)})["sd"]$\;
-			$kl^{(j)}=kl\_distance(\mu^{(j)}, \sigma^{(j)})$
 		}
-		$kl\_sorted = sort(kl)$\;
+		$\bar{\mu} = \frac{1}{m} \sum_{k=1}^{m} \mu^{(k)}$\;
+		$\bar{\sigma} = \frac{1}{m} \sum_{k=1}^{m} \sigma^{(k)}$\;
+		\For{j=1 to m}{
+			$kl\_train^{(j)}=kl\_distance(\mu^{(j)}, \sigma^{(j)}, \bar{\mu}, \bar{\sigma})$
+		}
+		$kl\_sorted = sort(kl\_train)$\;
 		\For{i=1 to n}{
 			$\mu^{(i)} = p_{\theta}(y^{(i)})["mu"]$\;
 			$\sigma^{(i)} = p_{\theta}(y^{(i)})["sd"]$\;
-			$kl_test^{(j)}=kl\_distance(\mu^{(i)}, \sigma^{(i)})$\;
-			$p^{(i)} = Q_{kl\_sorted}(kl\_test)$ where Q is the quantile
+			$kl\_test^{(j)}=kl\_distance(\mu^{(i)}, \sigma^{(i)}, \bar{\mu}, \bar{\sigma})$\;
+			$p^{(i)} = rank_{kl\_sorted}(kl\_test)$ / m
 		}
 		\KwRet{$\boldsymbol{p}$}
-		\caption{VAE anomaly detection algorithm}
+		\caption{Algorithme de détection d'anomalies basé sur un autoencodeur variationnel}
 	\end{algorithm}
 \end{center}
 
-In our proposed approach, the $p$-value is computed from an empirical distribution, which is the Kullbach-Leibler distances of all training instances. At the end, we are testing if a new observation is coming from the inliers population :
+Dans l'approche que nous proposons, la valeur-$p$ est calculée à partir d'une distribution empirique, soit les distances de Kullbach-Leibler de toutes les instances du jeu de données d'entraînement. Au final, nous testons empiriquement si une nouvelle observation semble provenir de la population d'entraînement:
 
 \begin{center}
-	$\boldsymbol{H_0}$: $y^{(i)}$ comes from the population $X$ \\
-	$\boldsymbol{H_1}$: $y^{(i)}$ does not come from the population $X$
+	$\boldsymbol{H_0}$: $y^{(i)}$ provient de la population $X$ \\
+	$\boldsymbol{H_1}$: $y^{(i)}$ ne provient pas de la population $X$
 \end{center}
 
-\noindent Because we made the hypothesis that $X$ is mostly, if not entirely, inliers, we could rephrase our test :
+\noindent Puisque nous supposons que $X$, soit l'ensemble de données d'entraînement, est composé en grande partie d'observations normales, nous pouvons réécrire notre test comme étant:
 
 \begin{center}
-	$\boldsymbol{H_0}$: $y^{(i)}$ is an inlier \\
-	$\boldsymbol{H_1}$: $y^{(i)}$ is an outlier
+	$\boldsymbol{H_0}$: $y^{(i)}$ n'est pas une anomalie \\
+	$\boldsymbol{H_1}$: $y^{(i)}$ est une anomalie
 \end{center}
 
-Finally, once we have the $p$-values of all instances of test dataset, we can use a level of significance $\alpha$ to conclude if it's an outlier (see the algorithm \ref{test_algo}).
+Finalement, une fois que nous avons notre test statistique de définit, nous pouvons utiliser les valeurs-$p$ calculées sur l'ensemble de test et conclure avec un niveau de confiance $\alpha$ si une instance est une anomalie (voir algorithme \ref{test_algo}).
 
 \begin{center}
 	\begin{algorithm}[H] \label{test_algo}
 		\SetAlgoLined
-		\KwIn{$p$-values for all test instances $p^{(i)}, i=1,...,n$, \\ level of significance $\alpha$}
-		\KwOut{outlier indicators $o^{(i)}, i=1,...,n$}
+		\KwIn{Valeurs-$p$ pour les instances de test  $p^{(i)}, i=1,...,n$, \\ niveau de confiance $\alpha$}
+		\KwOut{indicateurs d'anomalies $o^{(i)}, i=1,...,n$}
 		\For{i=1 to n}{
 			\eIf{$p^{(i)} < \alpha$}{
-				$o^{(i)}$ = $true$
+				$o^{(i)}$ = $vrai$
 			}
 			{
-				$o^{(i)}$ = $false$
+				$o^{(i)}$ = $faux$
 			}
 		}
 		\KwRet{$\boldsymbol{o}$}
-		\caption{Outlier decision algorithm}
+		\caption{Algorithme de prise de décision}
 	\end{algorithm}
 \end{center}
 
-\subsection{Adapt for complex data}
+\section{Gestion des données complexes}
 
-Parler de pourquoi utiliser les representation encoder pour le test au lieu de l'erreur de reconstruction. Peut-etre parler de la perceptual loss pour dealer avec une reconstruction difficile pour des images complex.
+Un des objectifs de notre approche est de faire la détection d'anomalies parmi des données qui sont complexes, comme par exemple des images réelles. Sachant ce niveau de complexité, il faut que la méthodologie soit adaptée à ce contexte. Tout d'abord, il est pertinent de mentionner que le choix  d'utiliser des réseaux de neurones, plus particulièrement des autoencodeurs, est étroitement liée à ce concept de complexité. En effet, les réseaux de neurones ont le potentiel de stocker beaucoup d'informations au travers des nombreux paramètres du réseaux. De plus, les réseaux à convolutions sont également bien adaptés aux domaine de l'imagerie en prenant en compte l'information de manière locale dans l'image. Dans la prochaines sous-sections, nous allons présenter d'autres spécifications de l'approche qui permettent de prendre en compte cette complexité.
 
-\subsection{Hypothesis testing advantages}
+\subsection{L'utilisation de représentations latentes}
+
+Lorsqu'on parle de données complexes, on parle souvent de réduction de dimensionnalité. En effet, des données à haute dimensionnalité viennent généralement compliqué la tâche d'apprentissage, alors que les nombreuses dimensions augmente la distance entre les observations. Ce concept est d'autant plus important dans un contexte de détection d'anomalie, où on se rapporte souvent à une mesure de distance ou bien à une erreur de reconstruction. Prenons l'exemple où on doit détecter des anomalies parmi des images de dimensions 128 par 128. Supposons que nous utilisons l'approche avec un VAE décrite plus tôt et que nous encodons les données vers une représentation latente à 25 dimensions. En utilisant une distance de Kullbach-Leibler sur la représentation latente, on calcule une distance basée sur 2 vecteurs à 25 dimensions pour obtenir un score d'anomalie. Pour bien visualiser l'effet du fléau de la dimensionnalité, supposons que nous aurions plutôt décider d'utiliser l'erreur de reconstruction, basée sur une erreur quadratique moyenne, comme score d'anomalie. Dans ce cas-ci, nous aurions donc calculé notre erreur quadratique moyenne en fait la différence au carré entre les valeurs de chaque pixel prédite par le modèle et de l'image originale. Ensuite, nous aurions pris la moyenne de ces erreurs. Sachant que nous avons à l'origine des images 128 par 128 pixels, cela veut dire que notre score d'anomalie serait basé sur 16 384 dimensions. On comprend bien que le score basé sur la représentation latente a le potentiel d'être moins affecté par la haute dimensionnalité des données.
+
+\subsection{Fonction de perte orientée sur le contenu}
+
+Dans la section précédente, nous avons mentionné l'impact de la haute dimensionnalité dans le calcul du score d'anomalie. Un autre aspect qui peut être fortement impacté par cette complexité est la fonction de perte. Cette fonction de perte est primordiale lors de l'apprentissage alors que c'est elle qui guidera l'optimisation des paramètres par la descente du gradient. La fonction de perte de l'autoencodeur variationnel est donnée par l'équation  \ref{eq:loss_vae}, où une des deux composantes de cette perte est associée à l'erreur de reconstruction. Dans sa forme la plus simple, cette erreur de reconstruction est définit pixel par pixel. Dans le cas de l'erreur quadratique moyenne, cette composante de perte peut être définit comme:
+
+\begin{gather} \label{eq:mse_loss}
+L(x, p_\phi\{q_\theta(x)\}) = \frac{1}{n} \sum_{i=1}^{n} (x^{(i)} - p_\phi\{q_\theta(x^{(i)})\})^2
+\end{gather}
+
+où $n$ représente le nombre de d'éléments de l'entrée $x$, ou plus spécifiquement le nombre de pixels dans le cas d'une image.
+
+Le genre de fonction de perte définit à l'équation \ref{eq:mse_loss} accorde autant d'importance à chacun des pixels de l'image. C'est donc dire que le réseau a pour objectif de bien reconstruire autant les pixels d'arrière-plan dans le coin de l'image, que les pixels centrales qui pourrait nous donner des informations plus cruciales sur le contenu de l'image. Dans un contexte où on cherche à trouver des anomalies au niveau de l'image entière, et non des anomalies dans une zone de l'image, il devient pertinent de trouver une manière d'accorder plus d'importance au contenu global de l'image. Pour se faire, on utilise un concept qui s'appelle \textit{perceptual optimization}. Dans ce type d'optimisation, on calcul la perte en se basant sur une couche spécifique d'un autre réseau de neurones pré-entraîné sur beaucoup plus d'images. En pratique, on utilise généralement des architectures de réseaux connus,  comme \textit{VGG} ou \textit{ResNet}, pré-entraînés sur \textit{ImageNet}. Cette approche est d'ailleurs utilisée pour transformer le style d'une image, par exemple pour donner le style van Gogh à une photo quelconque (\cite{Johnson2016Perceptual}). La figure \ref{fig:perceptual} illustre le mécanisme exact du calcul de la perte. On peut y voir que l'erreur de reconstruction du réseau n'est plus calculée directement entre la sortie du réseau $\hat{x}$ et l'entrée $x$. En effet, les deux composantes sont plutôt données en entrée à un autre réseau, et l'erreur est calculée en comparant plutôt une représentation précise de ce réseau obtenue par ces 2 composantes.
+
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}[shorten >=1pt,draw=black!50, node distance=\layersep, square/.style={regular polygon,regular polygon sides=4}]
+	\tikzstyle{neuron}=[circle,fill=black!25,minimum size=30pt,inner sep=0pt]
+	\tikzstyle{network}=[square,fill=black!25,minimum size=75pt,inner sep=0pt]
+	\tikzstyle{input neuron}=[neuron, fill=green!50];
+	\tikzstyle{graph}=[network, fill=white, draw=black];
+	\tikzstyle{hidden neuron}=[neuron, fill=blue!50];
+	\tikzstyle{annot} = [text width=4em, text centered]
+	
+	% Draw input (x)
+	\node[input neuron] (input) at (0,-2.5) {$x$};
+	
+	% Draw the VAE 
+	\node[graph] (vae) at (3,-2.5) {$p_{\phi}(q_{\theta}(x))$};
+	
+	% Draw the output (\hat(x)) with x below
+	\node[hidden neuron] (x_chap) at (6,-2.5) {$\hat{x}$};
+	\node[input neuron] (input-2) at (6,-5) {$x$};
+	
+	% Draw the VGG16
+	\node[graph] (vgg16) at (9,-2.5) {$g(a)$};
+	
+	% Draw the outputs
+	\node[hidden neuron] (input_sortie) at (12,-2.5) {$g(\hat{x})$};
+	\node[input neuron] (x_chap_sortie) at (12,-5) {$g(x)$};
+	
+	% Draw arrows
+	\path[->, line width=1mm] (input) edge (vae);
+	\path[->, line width=1mm] (vae) edge (x_chap);
+	\path[->, line width=1mm] (input-2) edge (vgg16);
+	\path[->, line width=1mm] (x_chap) edge (vgg16);
+	\path[->, line width=1mm] (vgg16) edge (input_sortie);
+	\path[->, line width=1mm] (vgg16) edge (x_chap_sortie);
+	
+	% Annotate the steps
+	\node[annot,above of=input, node distance=2cm] (h1) {Input Image};
+	\node[annot,above of=vae, node distance=2cm] (h2) {VAE};
+	\node[annot,above of=vgg16, node distance=2cm] (h3) {VGG16*};
+	\end{tikzpicture}
+	\caption{Figure montrant le mécanisme derrière le\textit{perceptual optimization}. Au lieu de calculer la perte entre $x$ et $\hat{x}$, la perte est calculée entre $g(x)$ et $g(\hat{x})$. La fonction $g(a)$ permet d'extraire les valeurs d'une couche spécifique du réseau \textit{VGG16} pré-entraîné sur \textit{ImageNet}.}
+\label{fig:perceptual}
+\end{figure}
+
+Étant donné que le réseau correspondant à la fonction $g(a)$ dans la figure \ref{fig:perceptual} est pré-entraîné sur plusieurs images réelles, cela nous permet d'extraire une couche qui contient de l'information à plus bas niveau comme des lignes, des formes, des couleurs, etc. Plus la couche sélectionné est près de l'entrée du réseau, plus l'information sera de simple, par exemple des lignes dans l'image. À l'inverse, si on sélectionne une couche plus près de la sortie, nous serons en mesure de prendre en compte de l'information plus complexe, par exemples des formes particulières. L'erreur de reconstruction qui était définit à l'équation \ref{eq:mse_loss}, est maintenant définit à l'équation .
+
+\begin{gather} \label{eq:perceptual_loss}
+L(x, p_\phi\{q_\theta(x)\}) = \frac{1}{n} \sum_{i=1}^{n} (g(x^{(i)}) - g(p_\phi\{q_\theta(x^{(i)})\})^2)
+\end{gather}
+
+L'objectif globale de cette approche est d'optimiser la reconstruction du réseau non pas sur les valeurs précises des pixels reconstruites en sortie, mais plutôt sur des représentations contenant de l'information plus structurée. Cela permet entres autres d'orienter l'apprentissage vers le contenu à haut-niveau, plutôt que sur la reconstruction parfaite de chaque pixel. Il est important de rappeler que notre objectif est de trouver des anomalies, et non reconstruire parfaitement des images. Dans ce contexte, il est d'autant plus pertinent de mettre l'accent sur le contenu.
+
+
+\section{Avantages du test d'hypothèse}
 
 Parler du fait que c'est simple de definir un level of significance versus trouver une metric quelconque.

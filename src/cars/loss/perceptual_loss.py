@@ -29,3 +29,26 @@ class LossNetwork(torch.nn.Module):
             if name in self.layer_name_mapping:
                 output[self.layer_name_mapping[name]] = x
                 return LossOutput(**output)
+
+
+def preprocess_vgg16(data, device):
+
+    vgg_model = vgg.vgg16(pretrained=True)
+    vgg_model.to(device)
+
+    vgg_layers = vgg_model.features
+    layer_name_mapping = {
+        #'3': "relu1_2",
+        #'8': "relu2_2",
+        '15': "relu3_3",
+        #'22': "relu4_3"
+    }
+        
+    output = {}
+        
+    for name, module in vgg_layers._modules.items():
+        data = module(data)
+        if name in layer_name_mapping:
+            output[layer_name_mapping[name]] = data
+    
+    return output['relu3_3']
