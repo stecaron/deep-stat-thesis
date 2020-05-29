@@ -27,26 +27,26 @@ PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'data/stanford_dogs2')
 # PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Define training parameters
 hyper_params = {
     "IMAGE_SIZE": (128, 128),
     "NUM_WORKERS": 10,
-    "EPOCH": 20,
-    "BATCH_SIZE": 156,
+    "EPOCH": 25,
+    "BATCH_SIZE": 100,
     "LR": 0.001,
     "TRAIN_SIZE": 10000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 1000,
     "TEST_NOISE": 0.1,
-    "LATENT_DIM": 50,  # latent distribution dimensions
+    "LATENT_DIM": 5,  # latent distribution dimensions
     "ALPHA": 0.1,  # level of significance for the test
     "BETA_epoch": [5, 10, 15],
     "BETA": [0, 100, 10],  # hyperparameter to weight KLD vs RCL
-    "MODEL_NAME": "vae_model_cars_20200420-noSchedulerLR",
-    "LOAD_MODEL": False,
-    "LOAD_MODEL_NAME": "vae_model_cars"
+    "MODEL_NAME": "vae_model_cars_20200517-250dims",
+    "LOAD_MODEL": True,
+    "LOAD_MODEL_NAME": "vae_model_cars_202005015-5dims"
 }
 
 # Log experiment parameters
@@ -100,19 +100,19 @@ model.to(device)
 # Train the model
 if hyper_params["LOAD_MODEL"]:
     model.load_state_dict(torch.load(f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
-
-train_mnist_vae(train_loader,
-                model,
-                criterion=optimizer,
-                n_epoch=hyper_params["EPOCH"],
-                experiment=experiment,
-                #scheduler=scheduler,
-                beta_list=hyper_params["BETA"],
-                beta_epoch=hyper_params["BETA_epoch"],
-                model_name=hyper_params["MODEL_NAME"],
-                device=device,
-                loss_type="perceptual",
-                flatten=False)
+else:
+    train_mnist_vae(train_loader,
+                    model,
+                    criterion=optimizer,
+                    n_epoch=hyper_params["EPOCH"],
+                    experiment=experiment,
+                    #scheduler=scheduler,
+                    beta_list=hyper_params["BETA"],
+                    beta_epoch=hyper_params["BETA_epoch"],
+                    model_name=hyper_params["MODEL_NAME"],
+                    device=device,
+                    loss_type="perceptual",
+                    flatten=False)
 
 # Compute p-values
 model.to(device)

@@ -190,10 +190,18 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     kld_train = compute_kl_divergence_2_dist(mu_train, mu_all_train, numpy.sqrt(var_train),
                                              numpy.sqrt(var_all_train))
 
+
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == False, :]).to_csv("mu_inliers.csv")
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == True, :]).to_csv("mu_outliers.csv")
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == False, :]).to_csv("sigma_inliers.csv")
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == True, :]).to_csv("sigma_outliers.csv")
+
     # test
     stats = {
         'mu_train_inliers': numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :]),
         'mu_train_outliers': numpy.mean(mu_train[ind_cat_train.astype(bool) == True, :]),
+        'mu_train_inliers_sd': numpy.std(mu_train[ind_cat_train.astype(bool) == False, :]),
+        'mu_train_outliers_sd': numpy.std(mu_train[ind_cat_train.astype(bool) == True, :]),
         'var_train_inliers': numpy.mean(var_train[ind_cat_train.astype(bool) == False, :]),
         'var_train_outliers': numpy.mean(var_train[ind_cat_train.astype(bool) == True, :]),
         'mu_all_train': numpy.mean(mu_all_train),
@@ -316,9 +324,9 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     plt.clf()
 
     # Show 16 randoms dimensios
-    random_dim = numpy.sort(random.sample(list(numpy.arange(0, 49)), 16))
+    random_dim = numpy.sort(random.sample(list(numpy.arange(0, 4)), 4))
 
-    fig, axs = plt.subplots(4,
+    fig, axs = plt.subplots(1,
                             4,
                             figsize=(15, 6),
                             facecolor='w',
@@ -326,7 +334,7 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     fig.subplots_adjust(hspace=.5, wspace=.001)
     axs = axs.ravel()
 
-    for i in range(16):
+    for i in range(4):
         dim = random_dim[i]
         mu_cars = mu_train[ind_cat_train.astype(bool) == False, dim]
         mu_dogs = mu_train[ind_cat_train.astype(bool) == True, dim]
@@ -343,7 +351,7 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
 
     # Show 16 randoms dimensios
 
-    fig, axs = plt.subplots(4,
+    fig, axs = plt.subplots(1,
                             4,
                             figsize=(15, 6),
                             facecolor='w',
@@ -351,7 +359,7 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     fig.subplots_adjust(hspace=.5, wspace=.001)
     axs = axs.ravel()
 
-    for i in range(16):
+    for i in range(4):
         dim = random_dim[i]
         var_cars = var_train[ind_cat_train.astype(bool) == False, dim]
         var_dogs = var_train[ind_cat_train.astype(bool) == True, dim]
