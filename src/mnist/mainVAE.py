@@ -35,15 +35,15 @@ device = "cpu"
 
 # Define training parameters
 hyper_params = {
-    "EPOCH": 50,
+    "EPOCH": 30,
     "BATCH_SIZE": 256,
     "NUM_WORKERS": 0,
     "LR": 0.001,
-    "TRAIN_SIZE": 1000,
+    "TRAIN_SIZE": 4000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 500,
     "TEST_NOISE": 0.1,
-    "CLASS_SELECTED": [7],  # on which class we want to learn outliers
+    "CLASS_SELECTED": 7,  # on which class we want to learn outliers
     "CLASS_CORRUPTED": [0, 2, 3, 6],  # which class we want to corrupt our dataset with
     #"INPUT_DIM": 28 * 28,  # In the case of MNIST
     #"HIDDEN_DIM": 256,  # hidden layer dimensions (before the representations)
@@ -99,6 +99,9 @@ train_data.targets = train_data.targets[id_train]
 
 test_data.data = test_data.data[id_test]
 test_data.targets = test_data.targets[id_test]
+
+train_data.targets = 1 - (train_data.targets == hyper_params["CLASS_SELECTED"]).type(torch.int32)
+test_data.targets = 1 - (test_data.targets == hyper_params["CLASS_SELECTED"]).type(torch.int32)
 
 train_loader = Data.DataLoader(dataset=train_data,
                                batch_size=hyper_params["BATCH_SIZE"],
@@ -174,13 +177,15 @@ experiment.log_figure(figure_name="empirical_test_hypothesis",
 plt.show()
 
 # Compute some stats
-precision, recall, f1_score = test_performances(pval, index, hyper_params["ALPHA"])
+precision, recall, f1_score, roc_auc = test_performances(pval, index, hyper_params["ALPHA"])
 print(f"Precision: {precision}")
 print(f"Recall: {recall}")
 print(f"F1 Score: {f1_score}")
+print(f"AUC: {roc_auc}")
 experiment.log_metric("precision", precision)
 experiment.log_metric("recall", recall)
 experiment.log_metric("f1_score", f1_score)
+experiment.log_metric("auc", roc_auc)
 
 # Show some examples
 
