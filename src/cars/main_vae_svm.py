@@ -6,25 +6,23 @@ import torch
 import torch.utils.data as Data
 import matplotlib.pyplot as plt
 from torchvision import transforms
+import sklearn.metrics as metrics
 
 from src.cars.data import DataGenerator, define_filenames
 from src.cars.model import CarsConvVAE, SmallCarsConvVAE, SmallCarsConvVAE128, AlexNetVAE
 from src.mnist.utils.train import train_mnist_vae
-from src.utils.empirical_pval import compute_pval_loaders, compute_reconstruction_pval, compute_pval_loaders_mixture
-from src.mnist.utils.stats import test_performances
+from src.utils.empirical_pval import compute_pval_loaders_svm
 from src.utils.denormalize import denormalize
 
 # Create an experiment
 experiment = Experiment(project_name="deep-stats-thesis",
                         workspace="stecaron",
                         disabled=False)
-experiment.add_tag("cars_dogs")
+experiment.add_tag("cars_dogs_svm")
 
 # General parameters
 PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'data/stanford_cars')
 PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'data/stanford_dogs2')
-# PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_cars')
-# PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'Downloads/stanford_dogs')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
@@ -44,9 +42,9 @@ hyper_params = {
     "ALPHA": 0.1,  # level of significance for the test
     "BETA_epoch": [5, 10, 15],
     "BETA": [0, 100, 10],  # hyperparameter to weight KLD vs RCL
-    "MODEL_NAME": "vae_model_cars_20200612-50dims",
+    "MODEL_NAME": "vae_svm_model_cars_20200612-50dims",
     "LOAD_MODEL": False,
-    "LOAD_MODEL_NAME": "vae_model_cars_202005015-5dims"
+    "LOAD_MODEL_NAME": "vae_svm_model_cars_202005015-5dims"
 }
 
 # Log experiment parameters
@@ -89,11 +87,6 @@ test_loader = Data.DataLoader(dataset=test_data,
 # Load model
 model = SmallCarsConvVAE128(z_dim=hyper_params["LATENT_DIM"])
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
-# scheduler = torch.optim.lr_scheduler.OneCycleLR(
-#     optimizer,
-#     max_lr=hyper_params["LR"],
-#     steps_per_epoch=len(train_loader),
-#     epochs=hyper_params["EPOCH"])
 
 model.to(device)
 
@@ -116,72 +109,40 @@ else:
 
 # Compute p-values
 model.to(device)
-pval, _ = compute_pval_loaders(train_loader,
-                                       test_loader,
-                                       model,
-                                       device=device,
-                                       #method="mean",
-                                       experiment=experiment)
-
-pval = 1 - pval  #we test on the tail
-pval_order = numpy.argsort(pval)
-
-# Plot p-values
-x_line = numpy.arange(0, len(test_data), step=1)
-y_line = numpy.linspace(0, 1, len(test_data))
-y_adj = numpy.arange(0, len(test_data),
-                     step=1) / len(test_data) * hyper_params["ALPHA"]
-zoom = int(0.2 * len(test_data))  # nb of points to zoom
+preds = compute_pval_loaders_svm(train_loader,
+                                 test_loader,
+                                 model,
+                                 device=device,
+                                 experiment=experiment,
+                                 flatten=True)
 
 index = test_data.labels
 
-fig, (ax1, ax2) = plt.subplots(2, 1)
-
-ax1.scatter(numpy.arange(0, len(pval), 1),
-            pval[pval_order],
-            c=index[pval_order].reshape(-1))
-ax1.plot(x_line, y_line, color="green")
-ax1.plot(x_line, y_adj, color="red")
-ax1.set_title(
-    f'Entire test dataset with {int(hyper_params["TEST_NOISE"] * 100)}% of noise'
-)
-ax1.set_xticklabels([])
-
-ax2.scatter(numpy.arange(0, zoom, 1),
-            pval[pval_order][0:zoom],
-            c=index[pval_order].reshape(-1)[0:zoom])
-ax2.plot(x_line[0:zoom], y_line[0:zoom], color="green")
-ax2.plot(x_line[0:zoom], y_adj[0:zoom], color="red")
-ax2.set_title('Zoomed in')
-ax2.set_xticklabels([])
-
-experiment.log_figure(figure_name="empirical_test_hypothesis",
-                      figure=fig,
-                      overwrite=True)
-plt.show()
-
 # Compute some stats
-precision, recall, f1_score, roc_auc = test_performances(pval, index,
-                                                hyper_params["ALPHA"])
+precision = metrics.precision_score(index, preds)
+recall = metrics.recall_score(index, preds)
+f1_score = metrics.f1_score(index, preds)
 print(f"Precision: {precision}")
 print(f"Recall: {recall}")
-print(f"F1-Score: {f1_score}")
-print(f"AUC: {roc_auc}")
+print(f"F1 Score: {f1_score}")
+#print(f"AUC: {roc_auc}")
 experiment.log_metric("precision", precision)
 experiment.log_metric("recall", recall)
-experiment.log_metric("F1-Score", f1_score)
-experiment.log_metric("AUC", roc_auc)
+experiment.log_metric("f1_score", f1_score)
+#experiment.log_metric("auc", roc_auc)
 
 # Show some examples
+
+sample_erros = numpy.random.choice(numpy.where(index != preds & index == 1)[0], 25)
+sample_ok = numpy.random.choice(numpy.where(index == preds & index == 1)[0], 25)
 
 fig, axs = plt.subplots(5, 5)
 fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    image = test_data[pval_order[i]][0].transpose_(0, 2)
-    image = denormalize(image, MEAN, STD, device=device).numpy()
-    axs[i].imshow(image)
+    image = test_data[sample_erros[i]]
+    axs[i].imshow(image, cmap='gray')
     axs[i].axis('off')
 
 experiment.log_figure(figure_name="rejetcted_observations",
@@ -194,12 +155,12 @@ fig.tight_layout()
 axs = axs.ravel()
 
 for i in range(25):
-    image = test_data[pval_order[int(len(pval) - 1) - i]][0].transpose_(0, 2)
-    image = denormalize(image, MEAN, STD, device=device).numpy()
-    axs[i].imshow(image)
+    image = test_data[sample_ok[i]]
+    axs[i].imshow(image, cmap='gray')
     axs[i].axis('off')
 
 experiment.log_figure(figure_name="better_observations",
                       figure=fig,
                       overwrite=True)
 plt.show()
+

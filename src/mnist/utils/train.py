@@ -36,7 +36,7 @@ def train_mnist(train_loader,
             inputs = inputs.to(device)
             outputs = inputs.to(device)
 
-            decoded = model(inputs)
+            encoded, decoded = model(inputs)
 
             if perceptual_ind:
                 loss = perceptual_loss(outputs, decoded, loss_network)
@@ -123,6 +123,8 @@ def train_mnist_vae(train_loader,
                                        loss_type=loss_type,
                                        beta=beta,
                                        loss_network=loss_network)
+            experiment.log_metric("KLD", KLD.detach().cpu())
+            experiment.log_metric("RCL", loss.detach().cpu() - KLD.detach().cpu())
             loss.backward()
             train_loss += loss.item()
             criterion.step()

@@ -28,16 +28,16 @@ PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"),
                               'data/stanford_dogs2')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Define training parameters
 hyper_params = {
     "IMAGE_SIZE": (128, 128),
-    "NUM_WORKERS": 10,
-    "EPOCH": 20,
+    "NUM_WORKERS": 0,
+    "EPOCH": 2,
     "BATCH_SIZE": 132,
     "LR": 0.001,
-    "TRAIN_SIZE": 10000,
+    "TRAIN_SIZE": 2000,
     "TRAIN_NOISE": 0.01,
     "TEST_SIZE": 1000,
     "TEST_NOISE": 0.1,
@@ -52,8 +52,8 @@ experiment.log_parameters(hyper_params)
 
 # Define some transformations
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.CenterCrop((128, 128)),
+    transforms.Resize((128, 128)),
+    #transforms.CenterCrop((128, 128)),
     transforms.ToTensor(),
     transforms.Normalize(mean=MEAN, std=STD)])
 
@@ -86,7 +86,6 @@ test_loader = Data.DataLoader(dataset=test_data,
 # Load model
 model = CarsConvAE()
 optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
-loss_func = nn.MSELoss()
 
 model.to(device)
 
@@ -145,11 +144,15 @@ experiment.log_figure(figure_name="empirical_test_hypothesis",
 plt.show()
 
 # Compute some stats
-precision, recall = test_performances(pval, index, hyper_params["ALPHA"])
+precision, recall, f1_score, roc_auc = test_performances(pval, index, hyper_params["ALPHA"])
 print(f"Precision: {precision}")
 print(f"Recall: {recall}")
+print(f"F1-Score: {f1_score}")
+print(f"AUC: {roc_auc}")
 experiment.log_metric("precision", precision)
 experiment.log_metric("recall", recall)
+experiment.log_metric("f1_score", f1_score)
+experiment.log_metric("roc_auc", roc_auc)
 
 # Show some examples
 

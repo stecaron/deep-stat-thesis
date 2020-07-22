@@ -9,7 +9,7 @@ def calculate_loss(x, reconstructed_x, mean, log_var, beta, loss_type="binary", 
         #RCL = F.binary_cross_entropy(reconstructed_x, x, reduction="mean") * x.shape[2] * x.shape[2] * x.shape[1]
         RCL = F.binary_cross_entropy(reconstructed_x, x, reduction="sum") / x.shape[0]
     elif loss_type == "mse":
-        RCL = F.mse_loss(reconstructed_x, x, reduction="sum") * x.shape[0]
+        RCL = F.mse_loss(reconstructed_x, x, reduction="sum") / x.shape[0]
     elif loss_type == "perceptual":
         features_y = loss_network(x)
         features_x = loss_network(reconstructed_x)
@@ -23,6 +23,7 @@ def calculate_loss(x, reconstructed_x, mean, log_var, beta, loss_type="binary", 
     KLD = KLD
 
     return KLD * beta + RCL, KLD * beta
+    #return KLD + beta * RCL, KLD
 
 
 def perceptual_loss(target, decoded, loss_network):

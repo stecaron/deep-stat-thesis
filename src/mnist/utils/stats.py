@@ -21,6 +21,6 @@ def test_performances(p_values, index, alpha):
     precision = detected_outliers / (cutoff + 1)
     recall = detected_outliers / total_outliers
     f1_score = 2 * (precision * recall) / (precision + recall)
-    roc_auc = roc_auc_score(index, p_values)
+    roc_auc = roc_auc_score(index, 1 - p_values)
 
     return precision, recall, f1_score, roc_auc

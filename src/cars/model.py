@@ -467,8 +467,9 @@ class CarsConvAE(nn.Module):
             nn.Sigmoid())
 
     def forward(self, x):
-        decoded = self.decoder(self.encoder(x))
-        return decoded
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return encoded, decoded
 
     def save_weights(self, path):
         torch.save(self.state_dict(), path)
