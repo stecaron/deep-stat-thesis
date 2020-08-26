@@ -10,6 +10,8 @@ from sklearn.svm import OneClassSVM
 
 from src.utils.kl import compute_kl_divergence
 from src.utils.kl import compute_kl_divergence_2_dist
+from src.cars.loss.perceptual_loss import LossNetwork
+from src.mnist.utils.loss_vae import perceptual_loss
 
 
 def compute_empirical_pval(dt_train, model, dt_test):
@@ -47,7 +49,12 @@ def compute_empirical_pval(dt_train, model, dt_test):
     return (numpy.array(pvals), kld_train)
 
 
-def compute_pval_loaders(train_loader, test_loader, model, device, experiment, flatten=False):
+def compute_pval_loaders(train_loader,
+                         test_loader,
+                         model,
+                         device,
+                         experiment,
+                         flatten=False):
 
     model.eval()
 
@@ -73,11 +80,12 @@ def compute_pval_loaders(train_loader, test_loader, model, device, experiment, f
     mu_test = []
     logvar_test = []
     ind_cat_test = []
+
     for i, (x, y) in enumerate(test_loader):
         x = x.to(device)
         if flatten:
             x = x.view(-1, 28 * 28)
-        _, z_mu, z_var, _ = model(x, device=device)
+        x_hat, z_mu, z_var, _ = model(x, device=device)
         ind_cat_test.append(y)
         z_mu = z_mu.cpu()
         z_var = z_var.cpu()
@@ -97,18 +105,30 @@ def compute_pval_loaders(train_loader, test_loader, model, device, experiment, f
     var_all_train = numpy.mean(numpy.exp(logvar_train), axis=0)
 
     stats = {
-        'mu_train_inliers': numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :]),
-        'mu_train_outliers': numpy.mean(mu_train[ind_cat_train.astype(bool) == True, :]),
-        'mu_train_inliers_sd': numpy.std(mu_train[ind_cat_train.astype(bool) == False, :]),
-        'mu_train_outliers_sd': numpy.std(mu_train[ind_cat_train.astype(bool) == True, :]),
-        'var_train_inliers': numpy.mean(var_train[ind_cat_train.astype(bool) == False, :]),
-        'var_train_outliers': numpy.mean(var_train[ind_cat_train.astype(bool) == True, :]),
-        'mu_all_train': numpy.mean(mu_all_train),
-        'var_all_train': numpy.mean(var_all_train),
-        'mu_test_inliers': numpy.mean(mu_test[ind_cat_test.astype(bool) == False, :]),
-        'mu_test_outliers': numpy.mean(mu_test[ind_cat_test.astype(bool) == True, :]),
-        'var_test_inliers': numpy.mean(var_test[ind_cat_test.astype(bool) == False, :]),
-        'var_test_outliers': numpy.mean(var_test[ind_cat_test.astype(bool) == True, :])
+        'mu_train_inliers':
+        numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :]),
+        'mu_train_outliers':
+        numpy.mean(mu_train[ind_cat_train.astype(bool) == True, :]),
+        'mu_train_inliers_sd':
+        numpy.std(mu_train[ind_cat_train.astype(bool) == False, :]),
+        'mu_train_outliers_sd':
+        numpy.std(mu_train[ind_cat_train.astype(bool) == True, :]),
+        'var_train_inliers':
+        numpy.mean(var_train[ind_cat_train.astype(bool) == False, :]),
+        'var_train_outliers':
+        numpy.mean(var_train[ind_cat_train.astype(bool) == True, :]),
+        'mu_all_train':
+        numpy.mean(mu_all_train),
+        'var_all_train':
+        numpy.mean(var_all_train),
+        'mu_test_inliers':
+        numpy.mean(mu_test[ind_cat_test.astype(bool) == False, :]),
+        'mu_test_outliers':
+        numpy.mean(mu_test[ind_cat_test.astype(bool) == True, :]),
+        'var_test_inliers':
+        numpy.mean(var_test[ind_cat_test.astype(bool) == False, :]),
+        'var_test_outliers':
+        numpy.mean(var_test[ind_cat_test.astype(bool) == True, :])
     }
 
     experiment.log_metrics(stats)
@@ -131,9 +151,9 @@ def compute_pval_loaders(train_loader, test_loader, model, device, experiment, f
 
     # Average train var distribution
     var_cars = numpy.mean(var_train[ind_cat_train.astype(bool) == False, :],
-                         axis=1)
+                          axis=1)
     var_dogs = numpy.mean(var_train[ind_cat_train.astype(bool) == True, :],
-                         axis=1)
+                          axis=1)
     kwargs = dict(alpha=0.5, bins=30)
     plt.hist(var_cars, **kwargs, color='g', label='Cars')
     plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
@@ -154,17 +174,24 @@ def compute_pval_loaders(train_loader, test_loader, model, device, experiment, f
     return (numpy.array(pvals), kld_train)
 
 
-def compute_reconstruction_pval(train_loader, model, test_loader, device):
+def compute_reconstruction_pval(train_loader, model, test_loader, device, perceptual_ind=False):
 
     model.eval()
+
+    if perceptual_ind:
+        loss_network = LossNetwork(device)
 
     error_train = []
     # Encode train data
     for i, (x, y) in enumerate(train_loader):
         x = x.to(device)
         with torch.no_grad():
-            x_encoded, x_decoded  = model(x)
-            x_error = torch.mean(F.mse_loss(x_decoded, x, reduce=False),
+            x_encoded, x_decoded = model(x)
+            if perceptual_ind:
+                x_error = torch.mean(perceptual_loss(x_decoded, x, loss_network, by_image=True),
+                                    axis=(1,2,3))
+            else:
+                x_error = torch.mean(F.mse_loss(x_decoded, x, reduce=False),
                                  axis=(1, 2, 3))
             x_error = x_error.cpu()
         error_train.append(x_error)
@@ -174,8 +201,12 @@ def compute_reconstruction_pval(train_loader, model, test_loader, device):
     for i, (x, y) in enumerate(test_loader):
         x = x.to(device)
         with torch.no_grad():
-            x_encoded, x_decoded  = model(x)
-            x_error = torch.mean(F.mse_loss(x_decoded, x, reduce=False),
+            x_encoded, x_decoded = model(x)
+            if perceptual_ind:
+                x_error = torch.mean(perceptual_loss(x_decoded, x, loss_network, by_image=True),
+                                    axis=(1,2,3))
+            else:
+                x_error = torch.mean(F.mse_loss(x_decoded, x, reduce=False),
                                  axis=(1, 2, 3))
             x_error = x_error.cpu()
         error_test.append(x_error)
@@ -195,8 +226,13 @@ def compute_reconstruction_pval(train_loader, model, test_loader, device):
     return (numpy.array(pvals), error_train)
 
 
-def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
-                                 method, experiment, flatten=False):
+def compute_pval_loaders_mixture(train_loader,
+                                 test_loader,
+                                 model,
+                                 device,
+                                 method,
+                                 experiment,
+                                 flatten=False):
 
     model.eval()
 
@@ -252,29 +288,44 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
         var_all_train = numpy.mean(numpy.exp(logvar_train), axis=0)
 
     # Compute KLD divergences for all train set
-    kld_train = compute_kl_divergence_2_dist(mu_train, mu_all_train, numpy.sqrt(var_train),
+    kld_train = compute_kl_divergence_2_dist(mu_train, mu_all_train,
+                                             numpy.sqrt(var_train),
                                              numpy.sqrt(var_all_train))
-
-
-    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == False, :]).to_csv("mu_inliers.csv")
-    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == True, :]).to_csv("mu_outliers.csv")
-    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == False, :]).to_csv("sigma_inliers.csv")
-    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == True, :]).to_csv("sigma_outliers.csv")
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == False, :]).to_csv(
+        "mu_inliers.csv")
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == True, :]).to_csv(
+        "mu_outliers.csv")
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == False, :]).to_csv(
+        "sigma_inliers.csv")
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == True, :]).to_csv(
+        "sigma_outliers.csv")
 
     # test
     stats = {
-        'mu_train_inliers': numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :]),
-        'mu_train_outliers': numpy.mean(mu_train[ind_cat_train.astype(bool) == True, :]),
-        'mu_train_inliers_sd': numpy.std(mu_train[ind_cat_train.astype(bool) == False, :]),
-        'mu_train_outliers_sd': numpy.std(mu_train[ind_cat_train.astype(bool) == True, :]),
-        'var_train_inliers': numpy.mean(var_train[ind_cat_train.astype(bool) == False, :]),
-        'var_train_outliers': numpy.mean(var_train[ind_cat_train.astype(bool) == True, :]),
-        'mu_all_train': numpy.mean(mu_all_train),
-        'var_all_train': numpy.mean(var_all_train),
-        'mu_test_inliers': numpy.mean(mu_test[ind_cat_test.astype(bool) == False, :]),
-        'mu_test_outliers': numpy.mean(mu_test[ind_cat_test.astype(bool) == True, :]),
-        'var_test_inliers': numpy.mean(var_test[ind_cat_test.astype(bool) == False, :]),
-        'var_test_outliers': numpy.mean(var_test[ind_cat_test.astype(bool) == True, :])
+        'mu_train_inliers':
+        numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :]),
+        'mu_train_outliers':
+        numpy.mean(mu_train[ind_cat_train.astype(bool) == True, :]),
+        'mu_train_inliers_sd':
+        numpy.std(mu_train[ind_cat_train.astype(bool) == False, :]),
+        'mu_train_outliers_sd':
+        numpy.std(mu_train[ind_cat_train.astype(bool) == True, :]),
+        'var_train_inliers':
+        numpy.mean(var_train[ind_cat_train.astype(bool) == False, :]),
+        'var_train_outliers':
+        numpy.mean(var_train[ind_cat_train.astype(bool) == True, :]),
+        'mu_all_train':
+        numpy.mean(mu_all_train),
+        'var_all_train':
+        numpy.mean(var_all_train),
+        'mu_test_inliers':
+        numpy.mean(mu_test[ind_cat_test.astype(bool) == False, :]),
+        'mu_test_outliers':
+        numpy.mean(mu_test[ind_cat_test.astype(bool) == True, :]),
+        'var_test_inliers':
+        numpy.mean(var_test[ind_cat_test.astype(bool) == False, :]),
+        'var_test_outliers':
+        numpy.mean(var_test[ind_cat_test.astype(bool) == True, :])
     }
 
     experiment.log_metrics(stats)
@@ -306,9 +357,9 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
 
     # Average train var distribution
     var_cars = numpy.mean(var_train[ind_cat_train.astype(bool) == False, :],
-                         axis=1)
+                          axis=1)
     var_dogs = numpy.mean(var_train[ind_cat_train.astype(bool) == True, :],
-                         axis=1)
+                          axis=1)
     kwargs = dict(alpha=0.5, bins=30)
     plt.hist(var_cars, **kwargs, color='g', label='Cars')
     plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
@@ -334,9 +385,9 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
 
     # Average train var over dimensions distribution
     var_cars = numpy.mean(var_train[ind_cat_train.astype(bool) == False, :],
-                         axis=0)
+                          axis=0)
     var_dogs = numpy.mean(var_train[ind_cat_train.astype(bool) == True, :],
-                         axis=0)
+                          axis=0)
     kwargs = dict(alpha=0.5, bins=30)
     plt.hist(var_cars, **kwargs, color='g', label='Cars')
     plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
@@ -363,8 +414,9 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
 
     # Average test var over dimensions distribution
     var_cars = numpy.mean(var_test[ind_cat_test.astype(bool) == False, :],
-                         axis=0)
-    var_dogs = numpy.mean(var_test[ind_cat_test.astype(bool) == True, :], axis=0)
+                          axis=0)
+    var_dogs = numpy.mean(var_test[ind_cat_test.astype(bool) == True, :],
+                          axis=0)
     kwargs = dict(alpha=0.5, bins=30)
     plt.hist(var_cars, **kwargs, color='g', label='Cars')
     plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
@@ -410,9 +462,9 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
 
     plt.xticks(fontsize=14)
     plt.legend()
-    experiment.log_figure(figure_name="mu_train_16_random_dims", overwrite=True)
+    experiment.log_figure(figure_name="mu_train_16_random_dims",
+                          overwrite=True)
     plt.clf()
-
 
     # Show 16 randoms dimensios
 
@@ -435,7 +487,8 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
 
     plt.xticks(fontsize=14)
     plt.legend()
-    experiment.log_figure(figure_name="var_train_16_random_dims", overwrite=True)
+    experiment.log_figure(figure_name="var_train_16_random_dims",
+                          overwrite=True)
     plt.clf()
 
     # d = {
@@ -464,7 +517,8 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     # plt.show()
 
     # Compute p-values
-    kld_test = compute_kl_divergence_2_dist(mu_test, mu_all_train, numpy.sqrt(var_test),
+    kld_test = compute_kl_divergence_2_dist(mu_test, mu_all_train,
+                                            numpy.sqrt(var_test),
                                             numpy.sqrt(var_all_train))
 
     # KLD distances for test
@@ -487,7 +541,12 @@ def compute_pval_loaders_mixture(train_loader, test_loader, model, device,
     return (numpy.array(pvals), kld_train)
 
 
-def compute_pval_loaders_svm(train_loader, test_loader, model, device, experiment, flatten=False):
+def compute_pval_loaders_svm(train_loader,
+                             test_loader,
+                             model,
+                             device,
+                             experiment,
+                             flatten=False):
 
     model.eval()
 
@@ -529,18 +588,20 @@ def compute_pval_loaders_svm(train_loader, test_loader, model, device, experimen
     var_test = numpy.exp(logvar_test)
 
     # Fit one-class SVM model
-    data_train = pandas.DataFrame(numpy.concatenate((mu_train, var_train), axis=1))
-    data_test = pandas.DataFrame(numpy.concatenate((mu_test, var_test), axis=1))
-    svm = OneClassSVM(kernel="rbf", gamma="scale").fit(data_train)
+    data_train = pandas.DataFrame(
+        numpy.concatenate((mu_train, var_train), axis=1))
+    data_test = pandas.DataFrame(numpy.concatenate((mu_test, var_test),
+                                                   axis=1))
+    svm = OneClassSVM(kernel="rbf", gamma="scale", nu=0.1).fit(data_train)
     test_preds = svm.predict(data_test)
 
     # We define our outlier class as the svm class with less predictions
-    if len(numpy.where(test_preds==1)[0]) < data_test.shape[0]/2:
-        outlier_class = 1
-    else:
-        outlier_class = -1
+    # if len(numpy.where(test_preds == 1)[0]) < data_test.shape[0] / 2:
+    #     outlier_class = 1
+    # else:
+    #     outlier_class = -1
 
     preds = numpy.zeros(data_test.shape[0])
-    preds[numpy.argwhere(test_preds == outlier_class)] = 1
+    preds[numpy.argwhere(test_preds == -1)] = 1
 
     return preds

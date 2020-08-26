@@ -1,5 +1,5 @@
 import numpy
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 
 
 def test_performances(p_values, index, alpha):
@@ -22,5 +22,7 @@ def test_performances(p_values, index, alpha):
     recall = detected_outliers / total_outliers
     f1_score = 2 * (precision * recall) / (precision + recall)
     roc_auc = roc_auc_score(index, 1 - p_values)
+    average_precision = average_precision_score(
+        index, 1 - p_values)
 
-    return precision, recall, f1_score, roc_auc
+    return precision, recall, f1_score, average_precision, roc_auc

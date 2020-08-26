@@ -25,7 +25,7 @@ class VAencoder(nn.Module):
     def forward(self, x):
         # x is of shape [batch_size, input_dim + n_classes]
 
-        hidden = F.tanh(self.linear2(F.elu(self.linear(x))))
+        hidden = F.relu(self.linear2(F.relu(self.linear(x))))
         # hidden is of shape [batch_size, hidden_dim]
 
         # latent parameters
@@ -57,7 +57,7 @@ class VAdecoder(nn.Module):
 
     def forward(self, x):
         # x is of shape [batch_size, latent_dim + num_classes]
-        x = F.elu(self.hidden_to_hidden(F.tanh(self.latent_to_hidden(x))))
+        x = F.relu(self.hidden_to_hidden(F.relu(self.latent_to_hidden(x))))
         # x is of shape [batch_size, hidden_dim]
         generated_x = F.sigmoid(self.hidden_to_out(x))
         # x is of shape [batch_size, output_dim]

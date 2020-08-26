@@ -1,98 +1,111 @@
-import numpy
 import os
+import numpy
 from comet_ml import Experiment
 import torch
-import datetime
-import time
-import argparse
 import pandas
+import argparse
+import time
+import datetime
+import math
 import torch.nn as nn
 import torch.utils.data as Data
 from torchvision.utils import save_image
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-from src.mnist.data import load_mnist
-from src.mnist.autoencoder import AutoEncoder, ConvAutoEncoder2
-from src.utils.empirical_pval import compute_reconstruction_pval
-from src.mnist.utils.train import train_mnist
+from src.mnist.data import load_mnist, load_mnist_fashion
+from src.mnist.vae import VariationalAE
+from src.mnist.vae import ConvVAE
+from src.mnist.vae import ConvLargeVAE
+from src.mnist.utils.train import train_mnist_vae
+from src.mnist.utils.evaluate import to_img
+from src.utils.empirical_pval import compute_pval_loaders, compute_pval_loaders_mixture
 from src.mnist.utils.stats import test_performances
-from src.mnist.utils.evaluate import plot_comparisons, to_img
 
 
 def train(normal_digit, anomalies, file):
-
     # Create an experiment
     experiment = Experiment(project_name="deep-stats-thesis",
                             workspace="stecaron",
                             disabled=False)
-    experiment.add_tag("mnist_conv_ae")
+    experiment.add_tag("mnist_vae")
 
     # General parameters
     DOWNLOAD_MNIST = True
-    PATH_DATA = os.path.join(os.path.expanduser("~"), 'Downloads/mnist')
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    PATH_DATA = os.path.join(os.path.expanduser("~"),
+                                'Downloads/mnist')
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #device = "cpu"
 
     # Define training parameters
     hyper_params = {
-        "EPOCH": 30,
-        "NUM_WORKERS": 10,
-        "BATCH_SIZE": 256,
-        "LR": 0.001,
+        "EPOCH": 75,
+        "BATCH_SIZE": 500,
+        "NUM_WORKERS": 12,
+        "LR": 0.0001,
         "TRAIN_SIZE": 4000,
         "TRAIN_NOISE": 0.01,
-        "TEST_SIZE": 1000,
-        "TEST_NOISE": 0.1,
+        "TEST_SIZE": 500,
+        "TEST_NOISE": 0.005,
         # on which class we want to learn outliers
         "CLASS_SELECTED": [normal_digit],
         # which class we want to corrupt our dataset with
         "CLASS_CORRUPTED": anomalies,
-        "ALPHA": 0.1,
-        "MODEL_NAME": "mnist_ae_model",
+        #"CLASS_CORRUPTED": numpy.delete(numpy.linspace(0, 9, 10).astype(int), normal_digit).tolist(),
+        "INPUT_DIM": 28 * 28,  # In the case of MNIST
+        "HIDDEN_DIM": 500,  # hidden layer dimensions (before the representations)
+        "LATENT_DIM": 25,  # latent distribution dimensions
+        "ALPHA": 0.1, # level of significance for the test
+        "BETA_epoch": [5, 10, 25],
+        "BETA": [0, 5, 1],  # hyperparameter to weight KLD vs RCL
+        "MODEL_NAME": "mnist_vae_model",
         "LOAD_MODEL": False,
-        "LOAD_MODEL_NAME": "mnist_ae_model"
+        "LOAD_MODEL_NAME": "mnist_vae_model"
     }
 
-    # Log experiment parameters
+    # Log experiment parameterso0p
     experiment.log_parameters(hyper_params)
+
+    # Load data
+    train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
+    # train_data.data.to(torch.double)
+    # test_data.data.to(torch.double)
+    # train_data.data = train_data.data / 255.
+    # test_data.data = test_data.data / 255.
+
+    # Train the autoencoder
+    # model = VariationalAE(hyper_params["INPUT_DIM"], hyper_params["HIDDEN_DIM"],
+    #                       hyper_params["LATENT_DIM"])
+    model = ConvLargeVAE(z_dim=hyper_params["LATENT_DIM"])
+    optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
 
     # Set the random seed
     numpy.random.seed(0)
 
-    # Load data
-    train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
-
-    # Train the autoencoder
-    model = ConvAutoEncoder2()
-    optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
-    #loss_func = nn.MSELoss()
-    loss_func = nn.BCELoss()
-
     # Build "train" and "test" datasets
-    id_maj_train = numpy.random.choice(numpy.where(
-        numpy.isin(train_data.train_labels, hyper_params["CLASS_SELECTED"]))[0],
-                                    int((1 - hyper_params["TRAIN_NOISE"]) *
-                                        hyper_params["TRAIN_SIZE"]),
-                                    replace=False)
-    id_min_train = numpy.random.choice(numpy.where(
-        numpy.isin(train_data.train_labels, hyper_params["CLASS_CORRUPTED"]))[0],
-                                    int(hyper_params["TRAIN_NOISE"] *
-                                        hyper_params["TRAIN_SIZE"]),
-                                    replace=False)
+    id_maj_train = numpy.random.choice(
+        numpy.where(numpy.isin(train_data.train_labels, hyper_params["CLASS_SELECTED"]))[0],
+        int((1 - hyper_params["TRAIN_NOISE"]) * hyper_params["TRAIN_SIZE"]),
+        replace=False
+    )
+    id_min_train = numpy.random.choice(
+        numpy.where(numpy.isin(train_data.train_labels, hyper_params["CLASS_CORRUPTED"]))[0],
+        int(hyper_params["TRAIN_NOISE"] * hyper_params["TRAIN_SIZE"]),
+        replace=False
+    )
     id_train = numpy.concatenate((id_maj_train, id_min_train))
 
-    id_maj_test = numpy.random.choice(numpy.where(
-        numpy.isin(test_data.test_labels, hyper_params["CLASS_SELECTED"]))[0],
-                                    int((1 - hyper_params["TEST_NOISE"]) *
-                                        hyper_params["TEST_SIZE"]),
-                                    replace=False)
-    id_min_test = numpy.random.choice(numpy.where(
-        numpy.isin(test_data.test_labels, hyper_params["CLASS_CORRUPTED"]))[0],
-                                    int(hyper_params["TEST_NOISE"] *
-                                        hyper_params["TEST_SIZE"]),
-                                    replace=False)
+    id_maj_test = numpy.random.choice(
+        numpy.where(numpy.isin(test_data.test_labels, hyper_params["CLASS_SELECTED"]))[0],
+        int((1 - hyper_params["TEST_NOISE"]) * hyper_params["TEST_SIZE"]),
+        replace=False
+    )
+    id_min_test = numpy.random.choice(
+        numpy.where(numpy.isin(test_data.test_labels, hyper_params["CLASS_CORRUPTED"]))[0],
+        int(hyper_params["TEST_NOISE"] * hyper_params["TEST_SIZE"]),
+        replace=False
+    )
     id_test = numpy.concatenate((id_min_test, id_maj_test))
 
     train_data.data = train_data.data[id_train]
@@ -101,12 +114,8 @@ def train(normal_digit, anomalies, file):
     test_data.data = test_data.data[id_test]
     test_data.targets = test_data.targets[id_test]
 
-    train_data.targets = torch.from_numpy(
-        numpy.isin(train_data.train_labels,
-                hyper_params["CLASS_CORRUPTED"])).type(torch.int32)
-    test_data.targets = torch.from_numpy(
-        numpy.isin(test_data.test_labels,
-                hyper_params["CLASS_CORRUPTED"])).type(torch.int32)
+    train_data.targets = torch.from_numpy(numpy.isin(train_data.train_labels, hyper_params["CLASS_CORRUPTED"])).type(torch.int32)
+    test_data.targets = torch.from_numpy(numpy.isin(test_data.test_labels, hyper_params["CLASS_CORRUPTED"])).type(torch.int32)
 
     train_loader = Data.DataLoader(dataset=train_data,
                                 batch_size=hyper_params["BATCH_SIZE"],
@@ -114,25 +123,47 @@ def train(normal_digit, anomalies, file):
                                 num_workers=hyper_params["NUM_WORKERS"])
 
     test_loader = Data.DataLoader(dataset=test_data,
-                                batch_size=test_data.data.shape[0],
+                                batch_size=1,
                                 shuffle=False,
                                 num_workers=hyper_params["NUM_WORKERS"])
-    model.train()
+
+    #scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hyper_params["LR"], steps_per_epoch=len(train_loader), epochs=hyper_params["EPOCH"])
+
     if hyper_params["LOAD_MODEL"]:
         model = torch.load(hyper_params["LOAD_MODEL_NAME"])
-    else:
-        train_mnist(train_loader,
-                    model,
-                    criterion=optimizer,
-                    n_epoch=hyper_params["EPOCH"],
-                    experiment=experiment,
-                    device=device,
-                    model_name=hyper_params["MODEL_NAME"],
-                    loss_func=loss_func)
+    else :
+        train_mnist_vae(train_loader,
+                        #test_loader,
+                        model,
+                        criterion=optimizer,
+                        n_epoch=hyper_params["EPOCH"],
+                        experiment=experiment,
+                        #scheduler=scheduler,
+                        beta_list=hyper_params["BETA"],
+                        beta_epoch=hyper_params["BETA_epoch"],
+                        model_name=hyper_params["MODEL_NAME"],
+                        device=device,
+                        #latent_dim=hyper_params['LATENT_DIM'],
+                        loss_type="binary",
+                        flatten=False)
 
     # Compute p-values
     model.to(device)
-    pval, _ = compute_reconstruction_pval(train_loader, model, test_loader, device)
+    pval, _ = compute_pval_loaders(train_loader,
+                                test_loader,
+                                model,
+                                device=device,
+                                experiment=experiment,
+                                flatten=False)
+                                #method="mean")
+    # pval, _ = compute_pval_loaders_mixture(train_loader,
+    #                             test_loader,
+    #                             model,
+    #                             device=device,
+    #                             experiment=experiment,
+    #                             flatten=False,
+    #                             method="mean")
+    #pval = 1 - pval #we test on the tail
     pval_order = numpy.argsort(pval)
 
     # Plot p-values
@@ -171,13 +202,12 @@ def train(normal_digit, anomalies, file):
     plt.show()
 
     # Compute some stats
-    precision, recall, f1_score, average_precision, roc_auc = test_performances(
-        pval, index, hyper_params["ALPHA"])
+    precision, recall, f1_score, average_precision, roc_auc = test_performances(pval, index, hyper_params["ALPHA"])
     print(f"Precision: {precision}")
     print(f"Recall: {recall}")
     print(f"F1 Score: {f1_score}")
     print(f"AUC: {roc_auc}")
-    print(f"Average Precison: {average_precision}")
+    print(f"Average Precision: {average_precision}")
     experiment.log_metric("precision", precision)
     experiment.log_metric("recall", recall)
     experiment.log_metric("f1_score", f1_score)
@@ -232,20 +262,21 @@ def train(normal_digit, anomalies, file):
                  f1_score.reshape(1), average_precision.reshape(1),
                  roc_auc.reshape(1))).reshape(1,-1), columns=col_names), ignore_index=True)
 
+
     df_results.to_csv(file)
 
 
 def main():
 
     parser = argparse.ArgumentParser(
-        prog="AE on MNIST",
+        prog="VAE on MNIST",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--normal-digit",
         type=int,
         help="Digit number considered normal class in training",
-    ),
+    )
     parser.add_argument(
         "--anomalies",
         type=int,
