@@ -27,8 +27,10 @@ def train(folder, file, p_train, p_test):
     experiment.add_tag("cars_dogs_svm")
 
     # General parameters
-    PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'data/stanford_cars')
-    PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'data/stanford_dogs2')
+    PATH_DATA_CARS = os.path.join(
+        os.path.expanduser("~"), 'data/stanford_cars')
+    PATH_DATA_DOGS = os.path.join(
+        os.path.expanduser("~"), 'data/stanford_dogs2')
     MEAN = [0.485, 0.456, 0.406]
     STD = [0.229, 0.224, 0.225]
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -71,24 +73,24 @@ def train(folder, file, p_train, p_test):
         hyper_params["TEST_NOISE"])
 
     train_data = DataGenerator(train_x_files,
-                            train_y,
-                            transform=transform,
-                            image_size=hyper_params["IMAGE_SIZE"])
+                               train_y,
+                               transform=transform,
+                               image_size=hyper_params["IMAGE_SIZE"])
 
     test_data = DataGenerator(test_x_files,
-                            test_y,
-                            transform=transform,
-                            image_size=hyper_params["IMAGE_SIZE"])
+                              test_y,
+                              transform=transform,
+                              image_size=hyper_params["IMAGE_SIZE"])
 
     train_loader = Data.DataLoader(dataset=train_data,
-                                batch_size=hyper_params["BATCH_SIZE"],
-                                shuffle=True,
-                                num_workers=hyper_params["NUM_WORKERS"])
+                                   batch_size=hyper_params["BATCH_SIZE"],
+                                   shuffle=True,
+                                   num_workers=hyper_params["NUM_WORKERS"])
 
     test_loader = Data.DataLoader(dataset=test_data,
-                                batch_size=hyper_params["BATCH_SIZE"],
-                                shuffle=False,
-                                num_workers=hyper_params["NUM_WORKERS"])
+                                  batch_size=hyper_params["BATCH_SIZE"],
+                                  shuffle=False,
+                                  num_workers=hyper_params["NUM_WORKERS"])
 
     # Load model
     model = SmallCarsConvVAE128(z_dim=hyper_params["LATENT_DIM"])
@@ -98,14 +100,15 @@ def train(folder, file, p_train, p_test):
 
     # Train the model
     if hyper_params["LOAD_MODEL"]:
-        model.load_state_dict(torch.load(f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
+        model.load_state_dict(torch.load(
+            f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
     else:
         train_mnist_vae(train_loader,
                         model,
                         criterion=optimizer,
                         n_epoch=hyper_params["EPOCH"],
                         experiment=experiment,
-                        #scheduler=scheduler,
+                        # scheduler=scheduler,
                         beta_list=hyper_params["BETA"],
                         beta_epoch=hyper_params["BETA_epoch"],
                         model_name=hyper_params["MODEL_NAME"],
@@ -116,12 +119,12 @@ def train(folder, file, p_train, p_test):
     # Compute p-values
     model.to(device)
     preds = compute_pval_loaders_svm(train_loader,
-                                    test_loader,
-                                    model,
-                                    device=device,
-                                    experiment=experiment,
-                                    alpha=hyper_params["ALPHA"]
-                                    flatten=False)
+                                     test_loader,
+                                     model,
+                                     device=device,
+                                     experiment=experiment,
+                                     alpha=hyper_params["ALPHA"],
+                                     flatten=False)
 
     index = test_data.labels
 
@@ -143,8 +146,10 @@ def train(folder, file, p_train, p_test):
 
     # Show some examples
 
-    sample_erros = numpy.random.choice(numpy.where((index != preds) & (index == 1))[0], 25)
-    sample_ok = numpy.random.choice(numpy.where((index == preds) & (index == 1))[0], 25)
+    sample_erros = numpy.random.choice(
+        numpy.where((index != preds) & (index == 1))[0], 25)
+    sample_ok = numpy.random.choice(numpy.where(
+        (index == preds) & (index == 1))[0], 25)
 
     fig, axs = plt.subplots(5, 5)
     fig.tight_layout()
@@ -157,8 +162,8 @@ def train(folder, file, p_train, p_test):
         axs[i].axis('off')
 
     experiment.log_figure(figure_name="Errors examples",
-                        figure=fig,
-                        overwrite=True)
+                          figure=fig,
+                          overwrite=True)
     plt.show()
 
     fig, axs = plt.subplots(5, 5)
@@ -172,13 +177,13 @@ def train(folder, file, p_train, p_test):
         axs[i].axis('off')
 
     experiment.log_figure(figure_name="OK examples",
-                        figure=fig,
-                        overwrite=True)
+                          figure=fig,
+                          overwrite=True)
     plt.show()
 
     # Save the results in the output file
     col_names = ["timestamp", "precision", "recall", "f1_score",
-            "average_precision", "auc"]
+                 "average_precision", "auc"]
     results_file = os.path.join(folder, "results_" + file + ".csv")
     if os.path.exists(results_file):
         df_results = pandas.read_csv(results_file, names=col_names, header=0)
@@ -193,7 +198,7 @@ def train(folder, file, p_train, p_test):
                         time.time()).strftime('%Y-%m-%d %H:%M:%S')).reshape(1),
                  precision.reshape(1), recall.reshape(1),
                  f1_score.reshape(1), average_precision.reshape(1),
-                 numpy.array(numpy.nan).reshape(1))).reshape(1,-1), columns=col_names), ignore_index=True)
+                 numpy.array(numpy.nan).reshape(1))).reshape(1, -1), columns=col_names), ignore_index=True)
 
     df_results.to_csv(results_file)
 
