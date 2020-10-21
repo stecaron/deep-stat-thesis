@@ -1,3 +1,4 @@
+import os
 import numpy
 import torch
 import pandas
@@ -7,6 +8,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import random
 from sklearn.svm import OneClassSVM
+from sklearn.ensemble import IsolationForest
 
 from src.utils.kl import compute_kl_divergence
 from src.utils.kl import compute_kl_divergence_2_dist
@@ -54,6 +56,8 @@ def compute_pval_loaders(train_loader,
                          model,
                          device,
                          experiment,
+                         folder,
+                         file,
                          flatten=False):
 
     model.eval()
@@ -100,6 +104,12 @@ def compute_pval_loaders(train_loader,
 
     var_train = numpy.exp(logvar_train)
     var_test = numpy.exp(logvar_test)
+
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == False, :]).to_csv(os.path.join(folder, "mu_train_inliers_" + file + ".csv"))
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == True, :]).to_csv(os.path.join(folder, "mu_train_outliers_" + file + ".csv"))
+
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == False, :]).to_csv(os.path.join(folder, "sigma_train_inliers_" + file + ".csv"))
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == True, :]).to_csv(os.path.join(folder, "sigma_train_outliers_" + file + ".csv"))
 
     mu_all_train = numpy.mean(mu_train, axis=0)
     var_all_train = numpy.mean(numpy.exp(logvar_train), axis=0)
@@ -546,6 +556,7 @@ def compute_pval_loaders_svm(train_loader,
                              model,
                              device,
                              experiment,
+                             alpha,
                              flatten=False):
 
     model.eval()
@@ -592,7 +603,7 @@ def compute_pval_loaders_svm(train_loader,
         numpy.concatenate((mu_train, var_train), axis=1))
     data_test = pandas.DataFrame(numpy.concatenate((mu_test, var_test),
                                                    axis=1))
-    svm = OneClassSVM(kernel="rbf", gamma="scale", nu=0.1).fit(data_train)
+    svm = OneClassSVM(kernel="rbf", gamma="scale", nu=alpha).fit(data_train)
     test_preds = svm.predict(data_test)
 
     # We define our outlier class as the svm class with less predictions
@@ -605,3 +616,202 @@ def compute_pval_loaders_svm(train_loader,
     preds[numpy.argwhere(test_preds == -1)] = 1
 
     return preds
+
+
+def compute_pval_loaders_isof(train_loader,
+                             test_loader,
+                             model,
+                             device,
+                             experiment,
+                             flatten=False):
+
+    model.eval()
+
+    # Encode train data
+    mu_train = []
+    logvar_train = []
+
+    for i, (x, y) in enumerate(train_loader):
+        x = x.to(device)
+        if flatten:
+            x = x.view(-1, 28 * 28)
+        _, z_mu, z_var, _ = model(x, device=device)
+        z_mu = z_mu.cpu()
+        z_var = z_var.cpu()
+        mu_train.append(z_mu.detach().numpy())
+        logvar_train.append(z_var.detach().numpy())
+
+    mu_train = numpy.concatenate(mu_train)
+    logvar_train = numpy.concatenate(logvar_train)
+
+    # Encode test data
+    mu_test = []
+    logvar_test = []
+
+    for i, (x, y) in enumerate(test_loader):
+        x = x.to(device)
+        if flatten:
+            x = x.view(-1, 28 * 28)
+        _, z_mu, z_var, _ = model(x, device=device)
+        z_mu = z_mu.cpu()
+        z_var = z_var.cpu()
+        mu_test.append(z_mu.detach().numpy())
+        logvar_test.append(z_var.detach().numpy())
+
+    mu_test = numpy.concatenate(mu_test)
+    logvar_test = numpy.concatenate(logvar_test)
+
+    var_train = numpy.exp(logvar_train)
+    var_test = numpy.exp(logvar_test)
+
+    # Fit Isolation Forest model
+    data_train = pandas.DataFrame(
+        numpy.concatenate((mu_train, var_train), axis=1))
+    data_test = pandas.DataFrame(numpy.concatenate((mu_test, var_test),
+                                                   axis=1))
+    isof = IsolationForest(max_samples='auto')
+    isof.fit(data_train)
+    train_preds = isof.score_samples(data_train)
+    test_preds = isof.score_samples(data_test)
+
+    pvals = []
+    for i in range(test_preds.shape[0]):
+        all_values = numpy.concatenate((train_preds, test_preds[i].reshape(-1)))
+        pvals.append(
+            numpy.argwhere(train_preds <= test_preds[i]).shape[0] /
+            all_values.shape[0])
+
+    return numpy.array(pvals)
+
+
+def compute_pval_loaders_only(train_loader,
+                            test_loader,
+                         model,
+                         device,
+                         experiment,
+                         folder,
+                         file,
+                         flatten=False):
+
+    model.eval()
+
+    # Encode train data
+    mu_train = []
+    logvar_train = []
+    ind_cat_train = []
+    for i, (x, y) in enumerate(train_loader):
+        x = x.to(device)
+        if flatten:
+            x = x.view(-1, 28 * 28)
+        _, z_mu, z_var, _ = model(x, device=device)
+        ind_cat_train.append(y)
+        z_mu = z_mu.cpu()
+        z_var = z_var.cpu()
+        mu_train.append(z_mu.detach().numpy())
+        logvar_train.append(z_var.detach().numpy())
+
+    mu_train = numpy.concatenate(mu_train)
+    logvar_train = numpy.concatenate(logvar_train)
+
+    # Encode test data
+    mu_test = []
+    logvar_test = []
+    ind_cat_test = []
+
+    for i, (x, y) in enumerate(test_loader):
+        x = x.to(device)
+        if flatten:
+            x = x.view(-1, 28 * 28)
+        x_hat, z_mu, z_var, _ = model(x, device=device)
+        ind_cat_test.append(y)
+        z_mu = z_mu.cpu()
+        z_var = z_var.cpu()
+        mu_test.append(z_mu.detach().numpy())
+        logvar_test.append(z_var.detach().numpy())
+
+    mu_test = numpy.concatenate(mu_test)
+    logvar_test = numpy.concatenate(logvar_test)
+
+    ind_cat_train = numpy.concatenate(ind_cat_train)
+    ind_cat_test = numpy.concatenate(ind_cat_test)
+
+    var_train = numpy.exp(logvar_train)
+    var_test = numpy.exp(logvar_test)
+
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == False, :]).to_csv(os.path.join(folder, "mu_train_inliers_" + file + ".csv"))
+    pandas.DataFrame(mu_train[ind_cat_train.astype(bool) == True, :]).to_csv(os.path.join(folder, "mu_train_outliers_" + file + ".csv"))
+
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == False, :]).to_csv(os.path.join(folder, "sigma_train_inliers_" + file + ".csv"))
+    pandas.DataFrame(var_train[ind_cat_train.astype(bool) == True, :]).to_csv(os.path.join(folder, "sigma_train_outliers_" + file + ".csv"))
+
+    mu_all_train = numpy.mean(mu_train, axis=0)
+    var_all_train = numpy.mean(numpy.exp(logvar_train), axis=0)
+
+    stats = {
+        'mu_train_inliers':
+        numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :]),
+        'mu_train_outliers':
+        numpy.mean(mu_train[ind_cat_train.astype(bool) == True, :]),
+        'mu_train_inliers_sd':
+        numpy.std(mu_train[ind_cat_train.astype(bool) == False, :]),
+        'mu_train_outliers_sd':
+        numpy.std(mu_train[ind_cat_train.astype(bool) == True, :]),
+        'var_train_inliers':
+        numpy.mean(var_train[ind_cat_train.astype(bool) == False, :]),
+        'var_train_outliers':
+        numpy.mean(var_train[ind_cat_train.astype(bool) == True, :]),
+        'mu_all_train':
+        numpy.mean(mu_all_train),
+        'var_all_train':
+        numpy.mean(var_all_train),
+        'mu_test_inliers':
+        numpy.mean(mu_test[ind_cat_test.astype(bool) == False, :]),
+        'mu_test_outliers':
+        numpy.mean(mu_test[ind_cat_test.astype(bool) == True, :]),
+        'var_test_inliers':
+        numpy.mean(var_test[ind_cat_test.astype(bool) == False, :]),
+        'var_test_outliers':
+        numpy.mean(var_test[ind_cat_test.astype(bool) == True, :])
+    }
+
+    experiment.log_metrics(stats)
+
+    # Compute KLD divergences for all train set
+    kld_train = compute_kl_divergence(mu_train, logvar_train)
+
+    # Average train mu distribution
+    mu_cars = numpy.mean(mu_train[ind_cat_train.astype(bool) == False, :],
+                         axis=1)
+    mu_dogs = numpy.mean(mu_train[ind_cat_train.astype(bool) == True, :],
+                         axis=1)
+    kwargs = dict(alpha=0.5, bins=30)
+    plt.hist(mu_cars, **kwargs, color='g', label='Cars')
+    plt.hist(mu_dogs, **kwargs, color='r', label='Dogs')
+    plt.gca().set(title='Average mu train distribution', ylabel='Frequency')
+    plt.legend()
+    experiment.log_figure(figure_name="mu_train_dist", overwrite=True)
+    plt.clf()
+
+    # Average train var distribution
+    var_cars = numpy.mean(var_train[ind_cat_train.astype(bool) == False, :],
+                          axis=1)
+    var_dogs = numpy.mean(var_train[ind_cat_train.astype(bool) == True, :],
+                          axis=1)
+    kwargs = dict(alpha=0.5, bins=30)
+    plt.hist(var_cars, **kwargs, color='g', label='Cars')
+    plt.hist(var_dogs, **kwargs, color='r', label='Dogs')
+    plt.gca().set(title='Average var train distribution', ylabel='Frequency')
+    plt.legend()
+    experiment.log_figure(figure_name="var_train_dist", overwrite=True)
+    plt.clf()
+
+    # Compute p-values
+    kld_test = compute_kl_divergence(mu_test, logvar_test)
+    pvals = []
+    for i in range(kld_test.shape[0]):
+        all_values = numpy.concatenate((kld_train, kld_test[i].reshape(-1)))
+        pvals.append(
+            numpy.argwhere(kld_train >= kld_test[i]).shape[0] /
+            all_values.shape[0])
+
+    return (numpy.array(pvals), kld_train)

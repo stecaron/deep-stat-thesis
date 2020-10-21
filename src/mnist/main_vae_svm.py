@@ -24,30 +24,30 @@ from src.mnist.utils.evaluate import to_img
 from src.utils.empirical_pval import compute_pval_loaders_svm
 
 
-def train(normal_digit, anomalies, file):
+def train(normal_digit, anomalies, folder, file, p_train, p_test):
 
     # Create an experiment
     experiment = Experiment(project_name="deep-stats-thesis",
                             workspace="stecaron",
-                            disabled=True)
+                            disabled=False)
     experiment.add_tag("mnist_vae_svm")
 
     # General parameters
     DOWNLOAD_MNIST = True
     PATH_DATA = os.path.join(os.path.expanduser("~"), 'Downloads/mnist')
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     #device = "cpu"
 
     # Define training parameters
     hyper_params = {
         "EPOCH": 75,
         "BATCH_SIZE": 500,
-        "NUM_WORKERS": 0,
+        "NUM_WORKERS": 10,
         "LR": 0.001,
         "TRAIN_SIZE": 4000,
-        "TRAIN_NOISE": 0.01,
+        "TRAIN_NOISE": p_train,
         "TEST_SIZE": 1000,
-        "TEST_NOISE": 0.1,
+        "TEST_NOISE": p_test,
         # on which class we want to learn outliers
         "CLASS_SELECTED": [normal_digit],
         # which class we want to corrupt our dataset with
@@ -55,7 +55,7 @@ def train(normal_digit, anomalies, file):
         "INPUT_DIM": 28 * 28,  # In the case of MNIST
         "HIDDEN_DIM": 500,  # hidden layer dimensions (before the representations)
         "LATENT_DIM": 25,  # latent distribution dimensions
-        "ALPHA": 0.1,  # level of significance for the test
+        "ALPHA": p_test,  # level of significance for the test
         "BETA_epoch": [5, 10, 25],
         "BETA": [0, 5, 1],  # hyperparameter to weight KLD vs RCL
         "MODEL_NAME": "mnist_vae_svm_model",
@@ -65,9 +65,6 @@ def train(normal_digit, anomalies, file):
 
     # Log experiment parameterso0p
     experiment.log_parameters(hyper_params)
-
-    # Set the random seed
-    numpy.random.seed(0)
 
     # Load data
     train_data, test_data = load_mnist(PATH_DATA, download=DOWNLOAD_MNIST)
@@ -208,8 +205,9 @@ def train(normal_digit, anomalies, file):
     # Save the results in the output file
     col_names = ["timestamp", "precision", "recall", "f1_score",
             "average_precision", "auc"]
-    if os.path.exists(file):
-        df_results = pandas.read_csv(file, names=col_names, header=0)
+    results_file = os.path.join(folder, "results_" + file + ".csv")
+    if os.path.exists(results_file):
+        df_results = pandas.read_csv(results_file, names=col_names, header=0)
     else:
         df_results = pandas.DataFrame(columns=col_names)
 
@@ -223,7 +221,7 @@ def train(normal_digit, anomalies, file):
                  f1_score.reshape(1), average_precision.reshape(1),
                  numpy.array(numpy.nan).reshape(1))).reshape(1,-1), columns=col_names), ignore_index=True)
 
-    df_results.to_csv(file)
+    df_results.to_csv(results_file)
 
 
 def main():
@@ -244,12 +242,27 @@ def main():
         help="Digit number considered anomalies class in training",
     ),
     parser.add_argument(
+        "--folder",
+        type=str,
+        help="Folder to save the results",
+    ),
+    parser.add_argument(
         "--file",
         type=str,
         help="Filename to save the results",
     )
+    parser.add_argument(
+        "--p_train",
+        type=float,
+        help="Proportion of anomalies in train",
+    )
+    parser.add_argument(
+        "--p_test",
+        type=float,
+        help="Proportion of anomalies in test",
+    )
     args = parser.parse_args()
-    train(args.normal_digit, args.anomalies, args.file)
+    train(args.normal_digit, args.anomalies, args.folder, args.file, args.p_train, args.p_train)
 
 
 if __name__ == "__main__":

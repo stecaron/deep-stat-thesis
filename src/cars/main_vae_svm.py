@@ -19,7 +19,7 @@ from src.utils.empirical_pval import compute_pval_loaders_svm
 from src.utils.denormalize import denormalize
 
 
-def train(file):
+def train(folder, file, p_train, p_test):
     # Create an experiment
     experiment = Experiment(project_name="deep-stats-thesis",
                             workspace="stecaron",
@@ -31,24 +31,24 @@ def train(file):
     PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'data/stanford_dogs2')
     MEAN = [0.485, 0.456, 0.406]
     STD = [0.229, 0.224, 0.225]
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Define training parameters
     hyper_params = {
         "IMAGE_SIZE": (128, 128),
-        "NUM_WORKERS": 0,
+        "NUM_WORKERS": 10,
         "EPOCH": 20,
-        "BATCH_SIZE": 50,
+        "BATCH_SIZE": 130,
         "LR": 0.001,
         "TRAIN_SIZE": 10000,
-        "TRAIN_NOISE": 0.01,
+        "TRAIN_NOISE": p_train,
         "TEST_SIZE": 1000,
-        "TEST_NOISE": 0.1,
-        "LATENT_DIM": 50,  # latent distribution dimensions
-        "ALPHA": 0.1,  # level of significance for the test
+        "TEST_NOISE": p_test,
+        "LATENT_DIM": 25,  # latent distribution dimensions
+        "ALPHA": p_test,  # level of significance for the test
         "BETA_epoch": [5, 10, 15],
         "BETA": [0, 100, 10],  # hyperparameter to weight KLD vs RCL
-        "MODEL_NAME": "vae_svm_model_cars_20200612-50dims",
+        "MODEL_NAME": "vae_svm_model_cars",
         "LOAD_MODEL": False,
         "LOAD_MODEL_NAME": "vae_svm_model_cars_20200612-50dims"
     }
@@ -63,9 +63,6 @@ def train(file):
         transforms.ToTensor(),
         transforms.Normalize(mean=MEAN, std=STD)
     ])
-
-    # Set the random seed
-    numpy.random.seed(0)
 
     # Load data
     train_x_files, test_x_files, train_y, test_y = define_filenames(
@@ -123,6 +120,7 @@ def train(file):
                                     model,
                                     device=device,
                                     experiment=experiment,
+                                    alpha=hyper_params["ALPHA"]
                                     flatten=False)
 
     index = test_data.labels
@@ -181,8 +179,9 @@ def train(file):
     # Save the results in the output file
     col_names = ["timestamp", "precision", "recall", "f1_score",
             "average_precision", "auc"]
-    if os.path.exists(file):
-        df_results = pandas.read_csv(file, names=col_names, header=0)
+    results_file = os.path.join(folder, "results_" + file + ".csv")
+    if os.path.exists(results_file):
+        df_results = pandas.read_csv(results_file, names=col_names, header=0)
     else:
         df_results = pandas.DataFrame(columns=col_names)
 
@@ -196,7 +195,7 @@ def train(file):
                  f1_score.reshape(1), average_precision.reshape(1),
                  numpy.array(numpy.nan).reshape(1))).reshape(1,-1), columns=col_names), ignore_index=True)
 
-    df_results.to_csv(file)
+    df_results.to_csv(results_file)
 
 
 def main():
@@ -206,14 +205,28 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
+        "--folder",
+        type=str,
+        help="Folder to save the results",
+    )
+    parser.add_argument(
         "--file",
         type=str,
         help="Filename to save the results",
     )
+    parser.add_argument(
+        "--p_train",
+        type=float,
+        help="Proportion of anomalies in train",
+    )
+    parser.add_argument(
+        "--p_test",
+        type=float,
+        help="Proportion of anomalies in test",
+    )
     args = parser.parse_args()
-    train(args.file)
+    train(args.folder, args.file, args.p_train, args.p_test)
 
 
 if __name__ == "__main__":
-    #main()
-    train("test.csv")
+    main()

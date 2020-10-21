@@ -7,6 +7,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 from skimage import transform
+from skimage.util import random_noise
 from sklearn.model_selection import train_test_split
 from imgaug import augmenters as iaa
 
@@ -53,7 +54,7 @@ def define_filenames(path_dogs, path_cars, train_size, test_size,
 
 
 class DataGenerator(Dataset):
-    def __init__(self, x_files, labels, transform, image_size):
+    def __init__(self, x_files, labels, transform, image_size, denoising=False):
         """
         Majority class is the cars
         Minority calss is the dogs
@@ -63,6 +64,7 @@ class DataGenerator(Dataset):
         self.labels = labels
         self.transform = transform
         self.image_size = image_size
+        self.denoising = denoising
 
     def __getitem__(self, index):
         filename = self.images[index]
@@ -73,6 +75,9 @@ class DataGenerator(Dataset):
 
         img_tensor = self.transform(image).type(torch.FloatTensor)
         img_tensor.transpose_(1, 2)
+
+        if self.denoising:
+            img_tensor = torch.tensor(random_noise(img_tensor, mode='gaussian', mean=0, var=0.05, clip=True)).type(torch.FloatTensor)
 
         return img_tensor, label
 

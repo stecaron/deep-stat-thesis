@@ -6,6 +6,7 @@ import pandas
 from src.mnist.utils.loss_vae import calculate_loss
 from src.cars.loss.perceptual_loss import LossNetwork
 from src.mnist.utils.loss_vae import perceptual_loss
+from src.cars.loss.sparse_loss import sparse_loss
 
 
 def train_mnist(train_loader,
@@ -16,11 +17,11 @@ def train_mnist(train_loader,
                 device,
                 model_name,
                 loss_func=None,
-                perceptual_ind=False):
+                loss_type="perceptual"):
 
     model.train()
 
-    if perceptual_ind:
+    if loss_type == "perceptual":
         loss_network = LossNetwork(device)
 
     for epoch in range(n_epoch):
@@ -39,8 +40,13 @@ def train_mnist(train_loader,
 
             encoded, decoded = model(inputs)
 
-            if perceptual_ind:
+            if loss_type == "perceptual":
                 loss = perceptual_loss(outputs, decoded, loss_network)
+            elif loss_type == "sparsity":
+                mse_loss = loss_func(decoded, outputs)
+                l1_loss = sparse_loss(model, inputs)
+                # add the sparsity penalty
+                loss = mse_loss + 0.001 * l1_loss
             else:
                 loss = loss_func(decoded, outputs)
 

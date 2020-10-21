@@ -19,48 +19,46 @@ from src.mnist.utils.stats import test_performances
 from src.utils.denormalize import denormalize
 
 
-def train(file):
+def train(folder, file, p_train, p_test):
 
     # Create an experiment
     experiment = Experiment(project_name="deep-stats-thesis",
                             workspace="stecaron",
-                            disabled=False)
+                            disabled=True)
     experiment.add_tag("cars_dogs")
 
     # General parameters
-    PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'data/stanford_cars')
-    PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'data/stanford_dogs2')
-    # PATH_DATA_CARS = os.path.join(os.path.expanduser("~"), 'data/test_indoor/normal')
-    # PATH_DATA_DOGS = os.path.join(os.path.expanduser("~"), 'data/test_indoor/anomalies')
+    PATH_DATA_CARS = os.path.join(
+        os.path.expanduser("~"), 'data/stanford_cars')
+    PATH_DATA_DOGS = os.path.join(
+        os.path.expanduser("~"), 'data/stanford_dogs2')
+
     MEAN = [0.485, 0.456, 0.406]
     STD = [0.229, 0.224, 0.225]
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Define training parameters
     hyper_params = {
         "IMAGE_SIZE": (128, 128),
-        "NUM_WORKERS": 12,
+        "NUM_WORKERS": 10,
         "EPOCH": 20,
-        "BATCH_SIZE": 132,
+        "BATCH_SIZE": 130,
         "LR": 0.001,
         "TRAIN_SIZE": 10000,
-        "TRAIN_NOISE": 0.01,
+        "TRAIN_NOISE": p_train,
         "TEST_SIZE": 1000,
-        "TEST_NOISE": 0.1,
-        "LATENT_DIM": 5,  # latent distribution dimensions
-        "ALPHA": 0.1,  # level of significance for the test
+        "TEST_NOISE": p_test,
+        "LATENT_DIM": 25,  # latent distribution dimensions
+        "ALPHA": p_test,  # level of significance for the test
         "BETA_epoch": [5, 10, 15],
         "BETA": [0, 100, 10],  # hyperparameter to weight KLD vs RCL
-        "MODEL_NAME": "vae_model_cars_20200729",
+        "MODEL_NAME": "vae_model_cars",
         "LOAD_MODEL": False,
-        "LOAD_MODEL_NAME": "vae_model_cars_202005015-5dims"
+        "LOAD_MODEL_NAME": "vae_model_carsscenario_cars_plus"
     }
 
     # Log experiment parameters
     experiment.log_parameters(hyper_params)
-
-    # Set the random seed
-    numpy.random.seed(0)
 
     # Define some transformations
     transform = transforms.Compose([
@@ -77,72 +75,69 @@ def train(file):
         hyper_params["TEST_NOISE"])
 
     train_data = DataGenerator(train_x_files,
-                            train_y,
-                            transform=transform,
-                            image_size=hyper_params["IMAGE_SIZE"])
+                               train_y,
+                               transform=transform,
+                               image_size=hyper_params["IMAGE_SIZE"])
 
     test_data = DataGenerator(test_x_files,
-                            test_y,
-                            transform=transform,
-                            image_size=hyper_params["IMAGE_SIZE"])
+                              test_y,
+                              transform=transform,
+                              image_size=hyper_params["IMAGE_SIZE"])
 
     train_loader = Data.DataLoader(dataset=train_data,
-                                batch_size=hyper_params["BATCH_SIZE"],
-                                shuffle=True,
-                                num_workers=hyper_params["NUM_WORKERS"])
+                                   batch_size=hyper_params["BATCH_SIZE"],
+                                   shuffle=True,
+                                   num_workers=hyper_params["NUM_WORKERS"])
 
     test_loader = Data.DataLoader(dataset=test_data,
-                                batch_size=1,
-                                shuffle=False,
-                                num_workers=hyper_params["NUM_WORKERS"])
+                                  batch_size=1,
+                                  shuffle=False,
+                                  num_workers=hyper_params["NUM_WORKERS"])
 
     # Load model
     model = SmallCarsConvVAE128(z_dim=hyper_params["LATENT_DIM"])
     optimizer = torch.optim.Adam(model.parameters(), lr=hyper_params["LR"])
-    # scheduler = torch.optim.lr_scheduler.OneCycleLR(
-    #     optimizer,
-    #     max_lr=hyper_params["LR"],
-    #     steps_per_epoch=len(train_loader),
-    #     epochs=hyper_params["EPOCH"])
 
     model.to(device)
 
+    model_save = os.path.join(folder, hyper_params["MODEL_NAME"] + file)
+
     # Train the model
     if hyper_params["LOAD_MODEL"]:
-        model.load_state_dict(torch.load(f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
+        model.load_state_dict(torch.load(
+            f'{hyper_params["LOAD_MODEL_NAME"]}.h5'))
     else:
         train_mnist_vae(train_loader,
-                        #test_loader,
+                        # test_loader,
                         model,
                         criterion=optimizer,
                         n_epoch=hyper_params["EPOCH"],
                         experiment=experiment,
-                        #scheduler=scheduler,
                         beta_list=hyper_params["BETA"],
                         beta_epoch=hyper_params["BETA_epoch"],
-                        model_name=hyper_params["MODEL_NAME"],
+                        model_name=model_save,
                         device=device,
-                        #latent_dim=hyper_params['LATENT_DIM'],
                         loss_type="perceptual",
                         flatten=False)
 
     # Compute p-values
     model.to(device)
     pval, _ = compute_pval_loaders(train_loader,
-                                        test_loader,
-                                        model,
-                                        device=device,
-                                        #method="mean",
-                                        experiment=experiment)
+                                   test_loader,
+                                   model,
+                                   device=device,
+                                   experiment=experiment,
+                                   file=file,
+                                   folder=folder)
 
-    pval = 1 - pval  #we test on the tail
+    pval = 1 - pval  # we test on the tail
     pval_order = numpy.argsort(pval)
 
     # Plot p-values
     x_line = numpy.arange(0, len(test_data), step=1)
     y_line = numpy.linspace(0, 1, len(test_data))
     y_adj = numpy.arange(0, len(test_data),
-                        step=1) / len(test_data) * hyper_params["ALPHA"]
+                         step=1) / len(test_data) * hyper_params["ALPHA"]
     zoom = int(0.2 * len(test_data))  # nb of points to zoom
 
     index = test_data.labels
@@ -153,9 +148,11 @@ def train(file):
                 pval[pval_order],
                 c=index[pval_order].reshape(-1))
     ax1.plot(x_line, y_line, color="green")
-    ax1.plot(x_line, y_adj, color="red")
+    ax1.axhline(hyper_params["ALPHA"], color="red")
+    #ax1.plot(x_line, y_adj, color="red")
+    ax1.set_ylabel(r"Score $(1 - \gamma)$")
     ax1.set_title(
-        f'Entire test dataset with {int(hyper_params["TEST_NOISE"] * 100)}% of noise'
+        f'Jeu de données test avec {int(hyper_params["TEST_NOISE"] * 100)}% de contamination'
     )
     ax1.set_xticklabels([])
 
@@ -163,18 +160,21 @@ def train(file):
                 pval[pval_order][0:zoom],
                 c=index[pval_order].reshape(-1)[0:zoom])
     ax2.plot(x_line[0:zoom], y_line[0:zoom], color="green")
-    ax2.plot(x_line[0:zoom], y_adj[0:zoom], color="red")
-    ax2.set_title('Zoomed in')
+    ax2.axhline(hyper_params["ALPHA"], color="red")
+    #ax2.plot(x_line[0:zoom], y_adj[0:zoom], color="red")
+    ax2.set_ylabel(r"Score $(1 - \gamma)$")
+    ax2.set_title('Vue rapprochée')
     ax2.set_xticklabels([])
 
     experiment.log_figure(figure_name="empirical_test_hypothesis",
-                        figure=fig,
-                        overwrite=True)
+                          figure=fig,
+                          overwrite=True)
+    plt.savefig(os.path.join(folder, "pvalues_" + file + ".png"))
     plt.show()
 
     # Compute some stats
     precision, recall, f1_score, average_precision, roc_auc = test_performances(pval, index,
-                                                    hyper_params["ALPHA"])
+                                                                                hyper_params["ALPHA"])
     print(f"Precision: {precision}")
     print(f"Recall: {recall}")
     print(f"F1-Score: {f1_score}")
@@ -188,41 +188,85 @@ def train(file):
 
     # Show some examples
 
-    fig, axs = plt.subplots(5, 5)
+    plt.rcParams['figure.figsize'] = [10, 10]
+    fig, axs = plt.subplots(4, 4)
     fig.tight_layout()
     axs = axs.ravel()
 
-    for i in range(25):
+    for i in range(16):
         image = test_data[pval_order[i]][0].transpose_(0, 2)
         image = denormalize(image, MEAN, STD, device=device).numpy()
         axs[i].imshow(image)
         axs[i].axis('off')
 
     experiment.log_figure(figure_name="rejetcted_observations",
-                        figure=fig,
-                        overwrite=True)
+                          figure=fig,
+                          overwrite=True)
+    plt.savefig(os.path.join(folder, "rejected_observations_" + file + ".png"))
     plt.show()
 
-    fig, axs = plt.subplots(5, 5)
+    fig, axs = plt.subplots(4, 4)
     fig.tight_layout()
     axs = axs.ravel()
 
-    for i in range(25):
-        image = test_data[pval_order[int(len(pval) - 1) - i]][0].transpose_(0, 2)
+    for i in range(16):
+        image = test_data[pval_order[int(
+            len(pval) - 1) - i]][0].transpose_(0, 2)
         image = denormalize(image, MEAN, STD, device=device).numpy()
         axs[i].imshow(image)
         axs[i].axis('off')
 
     experiment.log_figure(figure_name="better_observations",
-                        figure=fig,
-                        overwrite=True)
+                          figure=fig,
+                          overwrite=True)
+    plt.savefig(os.path.join(folder, "better_observations_" + file + ".png"))
+    plt.show()
+
+    # Plot some errors
+    preds = numpy.zeros(index.shape[0])
+    preds[numpy.argwhere(pval <= hyper_params["ALPHA"])] = 1
+    false_positive = numpy.where((index != preds) & (index == 1))[0]
+    nb_errors = numpy.min([16, false_positive.shape[0]])
+
+    sample_errors = numpy.random.choice(
+        false_positive, nb_errors, replace=False)
+    fig, axs = plt.subplots(4, 4)
+    fig.tight_layout()
+    axs = axs.ravel()
+
+    for i in range(nb_errors):
+        image = test_data[sample_errors[i]][0].transpose_(0, 2)
+        image = denormalize(image, MEAN, STD, device=device).numpy()
+        axs[i].imshow(image)
+        axs[i].axis('off')
+
+    plt.savefig(os.path.join(folder, "false_positive_sample_" + file + ".png"))
+    plt.show()
+
+    false_negative = numpy.where((index != preds) & (index == 0))[0]
+    nb_errors = numpy.min([16, false_negative.shape[0]])
+
+    sample_errors = numpy.random.choice(
+        false_negative, nb_errors, replace=False)
+    fig, axs = plt.subplots(4, 4)
+    fig.tight_layout()
+    axs = axs.ravel()
+
+    for i in range(nb_errors):
+        image = test_data[sample_errors[i]][0].transpose_(0, 2)
+        image = denormalize(image, MEAN, STD, device=device).numpy()
+        axs[i].imshow(image)
+        axs[i].axis('off')
+
+    plt.savefig(os.path.join(folder, "false_negative_sample_" + file + ".png"))
     plt.show()
 
     # Save the results in the output file
     col_names = ["timestamp", "precision", "recall", "f1_score",
-            "average_precision", "auc"]
-    if os.path.exists(file):
-        df_results = pandas.read_csv(file, names=col_names, header=0)
+                 "average_precision", "auc"]
+    results_file = os.path.join(folder, "results_" + file + ".csv")
+    if os.path.exists(results_file):
+        df_results = pandas.read_csv(results_file, names=col_names, header=0)
     else:
         df_results = pandas.DataFrame(columns=col_names)
 
@@ -234,9 +278,9 @@ def train(file):
                         time.time()).strftime('%Y-%m-%d %H:%M:%S')).reshape(1),
                  precision.reshape(1), recall.reshape(1),
                  f1_score.reshape(1), average_precision.reshape(1),
-                 roc_auc.reshape(1))).reshape(1,-1), columns=col_names), ignore_index=True)
+                 roc_auc.reshape(1))).reshape(1, -1), columns=col_names), ignore_index=True)
 
-    df_results.to_csv(file)
+    df_results.to_csv(results_file)
 
 
 def main():
@@ -246,14 +290,29 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
+        "--folder",
+        type=str,
+        help="Folder to save the results",
+    )
+    parser.add_argument(
         "--file",
         type=str,
         help="Filename to save the results",
     )
+    parser.add_argument(
+        "--p_train",
+        type=float,
+        help="Proportion of anomalies in train",
+    )
+    parser.add_argument(
+        "--p_test",
+        type=float,
+        help="Proportion of anomalies in test",
+    )
     args = parser.parse_args()
-    train(args.file)
+    train(args.folder, args.file, args.p_train, args.p_test)
 
 
 if __name__ == "__main__":
     main()
-    #train("test.csv")
+    #train("", "test.csv", 0.01, 0.1)
