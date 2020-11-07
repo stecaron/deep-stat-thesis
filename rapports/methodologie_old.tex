@@ -1,0 +1,218 @@
+\chapter{Méthodologie}     % numéroté
+\label{chap:methodologie}                   % étiquette pour renvois (à compléter!)
+
+Le cœur de notre travail consiste à proposer une méthode de détection d'anomalies où nous utilisons la représentation latente d'un autoencodeur variationnel. Cette représentation servira ensuite comme base pour notre cadre décisionnel nous permettant de détecter des anomalies dans un jeu de données.
+
+\section{Les objectifs de l'approche}
+
+Le premier objectif de notre approche est de faire la détection d'anomalies sur des données complexes, comme par exemple des images. En second lieu, nous souhaitons avoir une approche qui discrimine des anomalies en utilisant un seuil qui s'apparente à un niveau de confiance plutôt qu'une métrique quelconque qui peut être difficile à établir. Sachant ces 2 objectifs, il faut que notre méthodologie soit en mesure de traiter des données complexes et doit nous donner en sortie un score d'anomalie facile à interpréter.
+
+Tout d'abord, il est pertinent de mentionner que le choix  d'utiliser des réseaux de neurones, plus particulièrement des autoencodeurs, est étroitement lié au fait de traiter des données complexes. En effet, les réseaux de neurones ont le potentiel d'apprendre des relations complexes et non-linéaires. De plus, l'architecture du réseau peut être adaptée selon la complexité des données en ajoutant des couches de paramètres. Finalement, les réseaux à convolutions sont également bien adaptés au domaine de l'imagerie en prenant en compte l'information de manière locale dans une image.
+
+Ensuite, l'avantage d'avoir un score d'anomalie facile à interpréter en sortie est de simplifier la prise de décision pour discriminer les anomalies des observations normales. Pour illustrer cet avantage, prenons un contre-exemple où on veut faire la détection d'anomalie à partir d'une méthode basée sur une distance comme les $k$ plus proches voisins. Dans cette approche, nous pourrions considérer comme anormale les observations pour lesquelles il y a moins de $k$ voisins à l'intérieur d'un rayon de longueur $\epsilon$. La détection d'anomalie requiert donc de définir les paramètres $k$ et $\epsilon$, qui ne pourront pas être choisis de manière systématique. À l'inverse, un score d'anomalie où on pourrait appliquer un niveau de confiance $\alpha$ est beaucoup simple, objective et intuitive à déterminer.
+
+\section{Les hypothèses de l'approche}
+
+Dans notre approche, nous supposons que  nous avons accès à un jeu de données d'entraînement $\mathcal{X} = \{\boldsymbol{X^{(1)}}, ..., \boldsymbol{X^{(n)}}\}$ qui contient $n$ observations indépendantes $\mathbf{X} \in \mathbb{R}^{d_1 \times d_2}$. Dans notre cas, on suppose que les matrices sont carrées, soit $d_1=d_2=d$. Pour simplifier la notation, ces matrices peuvent être exprimées comme des vecteurs de longueur $d^2$. On peut donc réécrire sous la forme vectorielle $\boldsymbol{x^{(i)}} = [x^{(i)}_1,...,x^{(i)}_{d^2}]$; la façon d'obtenir cette forme vectorielle n'a peu d'importance tant qu'on procède toujours de la même manière. Ces représentations peuvent être obtenues par ligne ou par colonne. Les $n$ observations de notre jeu d'entraînement proviennent d'un mélange à proportion $(1-p)$ d'observations identiquement distribuées dite "normales" et $p$ d'observations identiquement distribuées dite anormales. Pour savoir si la matrice $\boldsymbol{X^{(i)}}$ provient de la population dite "normale" $\mathcal{N}$, soit $ \boldsymbol{X^{(i)}}\in\mathcal{N}$, on utilise la fonction indicatrice définie ci-dessous
+
+\begin{gather}  \label{eq:ind_anomaly}
+\delta_{i}=
+\begin{cases}
+0 & \text{si $\boldsymbol{X^{(i)}}\in\mathcal{N}$} \\
+1 & \text{si $\boldsymbol{X^{(i)}}\not\in\mathcal{N}$}.
+\end{cases}
+\end{gather}
+
+On suppose que le pourcentage $p$ est faible, typiquement moins de 5\%. Dans la pratique, nous ne connaissons pas la valeur des $\delta_i$, ce qui veut dire que nous ne pouvons connaître le pourcentage réel d'anomalies $p$. 
+
+Nous avons également $k$ observations indépendantes de matrices constituées des mêmes $d \times d$ dimensions dans un jeu de données test $\mathcal{X^*} = \{\boldsymbol{X^{*(1)}},...,\boldsymbol{X^{*(k)}}\}$. On suppose que le pourcentage d'anomalies $p^*$ dans ce jeu de données est similaire ou supérieur à $p$. C'est donc dire que parmi ces $k$ observations, $(1-p^*)$ proviennent de la même distribution $\mathcal{N}$ que les données du jeu d'entrainement et $p^*$ sont des anomalies (également de la même population d'anomalies que le jeu d'entrainement). De la même manière que pour le jeu de données d'entraînement $\mathcal{X}$, nous ne savons pas si une matrice $\boldsymbol{X^{*}}$ du jeu de données test provient de la population dite "normale" $\mathcal{N}$. Nous ne connaissons donc pas non plus le pourcentage réel $p^*$.
+
+
+\section{Description de l'approche}
+
+Notre approche se divise essentiellement en 3 étapes. La première étape consiste à entraîner un autoencodeur variationnel pour apprendre les caractéristiques de la population normale du jeu de données d'entraînement $\mathcal{X}$. Ensuite, nous allons définir une hypothèse nulle que nous pourrons tester à partir de $\mathcal{X}$ avec un niveau de confiance $\alpha$. Finalement, cette hypothèse sera testée en représentant les valeurs calculées par la couche latente de l'autoencodeur en une statistique de test qui nous permettra de tester notre hypothèse nulle.
+
+\subsection{Entraîner l'autoencodeur} \label{meth:train-vae}
+
+La première étape consiste à utiliser le jeu de données d'entraînement $\mathcal{X}$ pour entraîner l'autoencodeur variationnel. Étant donné que $\mathcal{X}$ ne contient presque pas d'anomalies, cela permettra d'appendre les caractéristiques, ou la distribution, de la population dite "normale". Cette distribution apprise sera contenue dans la représentation latente du VAE entraîné, ou plus spécifiquement dans les couches $\mu$ et $\sigma$ du réseau. Ces deux couches précèdent la couche latente et permettent de générer celle-ci de manière stochastique comme nous l'avons vu dans la section \ref{background-vae}. Les VAE sont généralement entraînés avec une fonction de coût à deux composantes (voir l'équation \ref{eq:loss_vae}). Une de ces deux composantes est associée à la représentation latente du réseau, s'assurant ainsi que celle-ci s'approche d'une distribution a priori, soit une $N(0, I)$ dans notre cas. Pour ce faire, les valeurs des couches $\mu$ et $\sigma$ doivent s'approcher des paramètres de la loi a priori, soit les vecteurs $(\mathbf{0}, \mathbf{1})$ = $(0^m, 1^m)$ dans le cas d'une représentation latente à $m$ dimensions; nous pourrons d'ailleurs tirer avantage de cette hypothèse a priori dans notre règle de décision que nous allons décrire en détails à la prochaine section. La deuxième composante de la fonction de perte, soit l'erreur de reconstruction, demeure primordiale dans l'entraînement du réseau. Dans sa forme la plus simple, cette erreur de reconstruction est définie pixel par pixel. Dans le cas de l'erreur quadratique moyenne, cette composante de perte peut être définie pour la contribution d'une observation $i$ comme
+
+\begin{gather} \label{eq:mse_loss}
+L(\boldsymbol{x^{(i)}}, p_\phi\{q_\theta(\boldsymbol{x^{(i)}})\}) = \frac{1}{d^2} \sum_{l=1}^{d^2} (x^{(i)}_{l} - p_\phi\{q_\theta(\boldsymbol{x^{(i)}})\}_l)^2,
+\end{gather}
+
+où $p_\phi\{q_\theta(\boldsymbol{x^{(i)}})\}_l$ est le $l$-ème élément du vecteur ou de la matrice de sortie $p_\phi\{q_\theta(\boldsymbol{x^{(i)}})\}$ donnée par l'équation \ref{eq:output}. Dans le cas d'une image, le $l$-ème élément correspond au $l$-ème  pixel de l'image.
+
+La fonction de perte définie à l'équation \ref{eq:mse_loss} accorde autant d'importance à chacun des pixels de l'image. C'est donc dire que le réseau a pour objectif de bien reconstruire autant les pixels en arrière-plan que les pixels centraux. Dans un contexte où on cherche à trouver des anomalies au niveau de l'image entière, et non des anomalies dans une zone de l'image, il devient pertinent de trouver une manière d'accorder plus d'importance au contenu global de l'image. Pour ce faire, on utilise un concept qui s'appelle \textit{perceptual loss}. Dans ce type d'optimisation, on calcule la perte en se basant sur une couche spécifique d'un autre réseau de neurones pré-entraîné sur beaucoup plus d'images. En pratique, on utilise généralement des architectures de réseaux connus,  comme \textit{VGG} ou \textit{ResNet}, pré-entraînés sur \textit{ImageNet}. Cette approche est d'ailleurs utilisée pour transformer le style d'une image, par exemple pour donner le style d'un peintre célèbre à une image quelconque \citep{Johnson2016Perceptual}. La figure \ref{fig:perceptual} illustre le mécanisme exact du calcul de la perte. On peut y voir que l'erreur de reconstruction du réseau n'est plus calculée directement entre la sortie du réseau $\hat{x}$ et l'entrée $x$. En effet, les deux composantes sont plutôt données en entrée à un autre réseau, et l'erreur est calculée en comparant plutôt une représentation précise de ce réseau obtenue par ces 2 composantes.
+
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}[shorten >=1pt,draw=black!50, node distance=\layersep, square/.style={regular polygon,regular polygon sides=4}]
+	\tikzstyle{neuron}=[circle,fill=black!25,minimum size=30pt,inner sep=0pt]
+	\tikzstyle{network}=[square,fill=black!25,minimum size=75pt,inner sep=0pt]
+	\tikzstyle{input neuron}=[neuron, fill=green!50];
+	\tikzstyle{graph}=[network, fill=white, draw=black];
+	\tikzstyle{hidden neuron}=[neuron, fill=blue!50];
+	\tikzstyle{annot} = [text width=4em, text centered]
+	
+	% Draw input (x)
+	\node[input neuron] (input) at (0,-5) {$\boldsymbol{x}$};
+	
+	% Draw the VAE 
+	\node[graph] (vae) at (3,-2.5) {$p_{\phi}\{q_{\theta}(\boldsymbol{x})\}$};
+	
+	% Draw the output (\hat(x)) with x below
+	\node[hidden neuron] (x_chap) at (6,-2.5) {$\hat{\boldsymbol{x}}$};
+	%\node[input neuron] (input-2) at (6,-5) {$\boldsymbol{x}$};
+	
+	% Draw the VGG16
+	\node[graph] (vgg16_1) at (9,-2.5) {$g(\cdot)$};
+	\node[graph] (vgg16_2) at (9,-5) {$g(\cdot)$};
+	
+	
+	% Draw the outputs
+	\node[hidden neuron] (input_sortie) at (12,-2.5) {$g(\hat{\boldsymbol{x}})$};
+	\node[input neuron] (x_chap_sortie) at (12,-5) {$g(\boldsymbol{x})$};
+	
+	% Draw arrows
+	\path[->, line width=1mm] (input) edge (vae);
+	\path[->, line width=1mm] (vae) edge (x_chap);
+	\path[->, line width=1mm] (input) edge (vgg16_2);
+	\path[->, line width=1mm] (x_chap) edge (vgg16_1);
+	\path[->, line width=1mm] (vgg16_1) edge (input_sortie);
+	\path[->, line width=1mm] (vgg16_2) edge (x_chap_sortie);
+	
+	% Annotate the steps
+	\node[annot,above of=input, node distance=4.5cm] (h1) {Image d'entrée};
+	\node[annot,above of=vae, node distance=2cm] (h2) {VAE};
+	\node[annot,above of=vgg16_1, node distance=2cm] (h3) {VGG16*};
+	\end{tikzpicture}
+	\caption{Figure montrant le mécanisme derrière le concept de \textit{perceptual optimization}. Au lieu de calculer la perte entre $\boldsymbol{x}$ et $\hat{\boldsymbol{x}}$, la perte est calculée entre $g(\boldsymbol{x})$ et $g(\hat{\boldsymbol{x}})$. La fonction $g(a)$ permet d'extraire les valeurs d'une couche spécifique du réseau \textit{VGG16} pré-entraîné sur \textit{ImageNet}.}
+	\label{fig:perceptual}
+\end{figure}
+
+Étant donné que le réseau correspondant à la fonction $g(a)$ dans la figure \ref{fig:perceptual} est pré-entraîné sur plusieurs images réelles, cela nous permet d'extraire une couche qui contient de l'information à plus bas niveau comme la reconnaissance de lignes, des formes précises, des couleurs, etc. Plus la couche sélectionnée est près de l'entrée du réseau, plus l'information utilisée pour calculer la perte sera simple et brute. À l'inverse, si on sélectionne une couche plus près de la sortie, nous serons en mesure de prendre en compte de l'information plus complexe, par exemples des formes particulières \citep{Johnson2016Perceptual}. L'erreur de reconstruction qui était définie à l'équation \ref{eq:mse_loss}, peut maintenant se définir comme suit:
+
+\begin{gather} \label{eq:perceptual_loss}
+L(\boldsymbol{x}^{(i)}, p_\phi\{q_\theta(\boldsymbol{x}^{(i)})\}) = \frac{1}{d^2} \sum_{l=1}^{d^2} \Big[g(x^{(i)})_{l} - g(p_\phi\{q_\theta(\boldsymbol{x}^{(i)})\}_{l})^2\Big].
+\end{gather}
+
+L'objectif d'utiliser ce type de perte est d'optimiser la reconstruction du réseau non pas sur les valeurs précises des pixels reconstruites en sortie, mais plutôt sur des représentations contenant de l'information plus structurée. Cela permet entre autres d'orienter l'apprentissage vers la reconstruction du contenu à plus haut-niveau, plutôt que sur la reconstruction parfaite de chaque pixel. Il est important de rappeler que notre objectif est de trouver des anomalies, et non reconstruire parfaitement des images.
+
+Une fois le réseau de neurones entraîné, c'est-à-dire lorsque les paramètres $\theta$ et $\phi$ sont fixés, il nous est donc possible d'utiliser la partie encodeur du réseau, $q_{\theta}(\cdot) $, pour transformer les images, ou les données en entrée, en une paire de vecteurs $(\boldsymbol{\mu}, \boldsymbol{\sigma})$:
+
+\begin{gather}  \label{eq:encodeur}
+q_{\theta}(\boldsymbol{x}) = (\boldsymbol{\mu}, \boldsymbol{\sigma}), \qquad \boldsymbol{\mu} \in \mathbb{R}^m, \boldsymbol{\sigma} \in \mathbb{R}^m.
+\end{gather}
+
+Certains détails supplémentaires concernant l'entraînement du réseau de neurones seront décrits dans la section \ref{chap:experiments}.
+
+
+\subsection{Définir le cadre décisionnel}
+
+La prochaine étape de notre approche consiste à définir un cadre décisionnel nous permettant de discriminer nos anomalies de manière simple et intuitive. Pour définir notre règle de décision, nous allons utiliser les représentations latentes obtenues à la sous-section \ref{meth:train-vae}. Avec notre règle de décision, on cherche à savoir si une observation provenant du jeu de données test, soit $\boldsymbol{X}^{*}$, provient de la population normale $\mathcal{N}$ de notre jeu de données d'entraînement $\mathcal{X}$. On peut se définir une région $R_{N}$ selon laquelle notre règle catégorise une observation du jeu de données test comme une observation dites "normale":
+
+\begin{center}
+	$R_{N} = \Big\{\delta^{*}_{i} = 0\Big\}$
+\end{center}
+
+
+
+La prochaine étape de notre approche consiste à définir un test d'hypothèse que nous pourrons effectuer sur les représentations latentes obtenues à la sous-section \ref{meth:train-vae}. En bout de ligne, on veut savoir si une observation provenant du jeu de données test, soit $\boldsymbol{X}^{*}$, provient de la population normale $\mathcal{N}$ de notre jeu de données d'entraînement $\mathcal{X}$. On peut donc définir par cette hypothèse par le test suivant:
+
+\begin{center}
+	$\boldsymbol{H_0}$: $\delta^{*}_{i} = 0$ \\
+	$\boldsymbol{H_1}$: $\delta^{*}_{i} = 1$
+\end{center}
+
+Une fois que nous avons défini ce test d'hypothèse, il ne reste qu'à trouver une statistique qui nous permettra de tester cette hypothèse nulle. Cette statistique sera définie à la sous-section suivante et nous permettra d'obtenir les valeurs-$p$ pour chacune des observations de l'ensemble de donnée de test $\mathcal{X^{*}}$. Ainsi, nous pourrons discriminer chacune d'entres elles en comparant ces valeurs avec un niveau de confiance $\alpha$. Si la valeur-$p$ est plus petite que notre niveau de confiance $\alpha$, nous pouvons rejeter l'hypothèse nulle et donc conclure que l'observation testée est une anomalie.
+ 
+\subsection{Tester l'hypothèse nulle} \label{metho:stats}
+
+La première étape de notre approche, décrite à la section \ref{meth:train-vae}, nous permet d'obtenir des représentations latentes, encodées sous forme de vecteurs, pour chaque instance de notre jeu de données $\mathcal{X}$. Afin de pouvoir tester l'hypothèse nulle décrite à la deuxième étape et par le fait même discriminer les observations anormales des observations normales, il faut définir une statistique de test. Cette statistique de test calculée pour une observation $j$ du jeu de données de test sera comparée aux $n$ statistiques de test du jeu de données d'entraînement. Cela permettra de tester empiriquement notre hypothèse nulle. La valeur-$p$ pour l'observation $j$ pourra donc être donnée par le rang (ou le percentile) de la statistique de cette observation parmi celles de l'ensemble de données $\mathcal{X}$.  Pour y arriver, nous avons testé 2 approches différentes.
+
+Dans le premier cas, notre hypothèse est que les anomalies auront des vecteurs latents $(\boldsymbol{\mu}, \boldsymbol{\sigma})$ plus près des vecteurs a priori $(0_m, 1_m)$ que les observations normales. Il est possible de calculer cette distance en utilisant la distance de Kullbach-Leibler entre une loi $N(\boldsymbol{\mu}, \boldsymbol{\sigma})$ et une loi $N(0,I)$. Il s'agit d'ailleurs de la même distance que celle utilisée dans le calcul de la perte du VAE. Notre hypothèse est basée sur le fait qu'étant donné la faible quantité d'anomalies dans le jeu de données, la reconstruction de celles-ci sera difficile. Ainsi, le modèle sera tenté de minimiser la perte pour ces anomalies en positionnant les 2 vecteurs latents de manière à minimiser le critère de KL. Pour cette première approche, la statistique de test $T$, pour l'observation $j$ est donnée par
+
+\begin{gather}  \label{eq:stat_1}
+T^{(j)} = D_{KL}\big[N(\boldsymbol{\mu^{(j)}}, \boldsymbol{\sigma^{(j)}}) || N(0, I)\big],
+\end{gather}
+
+où les vecteurs $(\boldsymbol{\mu^{(j)}}, \boldsymbol{\sigma^{(j)}})$  sont donnés par l'encodeur (voir équation \ref{eq:encodeur}). Dans ce cas-ci, on s'attend à ce que les anomalies aient une statistique de test $T$ faible, car notre hypothèse est qu'on s'attend à avoir des vecteurs latents près de ceux de la $N(0,I)$. C'est donc dire qu'une valeur faible de la statistique $T$ devrait nous donner une petite valeur-$p$ et potentiellement rejeter l'hypothèse nulle au dépend de l'hypothèse alternative.
+
+Dans un deuxième temps, on pourrait également faire l'hypothèse que la représentation moyenne des vecteurs latents sur le jeu de données d'entraînement $\mathcal{X}$ soit représentative de la population "normale". Cette hypothèse repose en grande partie sur le fait que $\mathcal{X}$ ne contient que très peu d'anomalies. Une manière simple de définir la représentation moyenne est de calculer des vecteurs $(\boldsymbol{\bar{\mu}}, \boldsymbol{\bar{\sigma}})$ à partir de la moyenne de chacune des dimensions des vecteurs latents de longueur $m$. Supposons que nous encodons les $n$ observations du jeu de données d'entraînement vers des représentations latentes à $m$ dimensions, les éléments $h$ des vecteurs $\boldsymbol{\bar{\mu}}$ et $\boldsymbol{\bar{\sigma}}$ seront donnés par les équations suivantes:
+
+\begin{gather} \label{eq:vecteurs_bar}
+\bar{\mu}_{h} = \frac{1}{n} \sum_{i=1}^{n} \mu_{h}^{(i)}, \quad i=1,...,m \\
+\bar{\sigma}_{h} = \frac{1}{n} \sum_{i=1}^{n} \sigma_{h}^{(i)}, \quad i=1,...,m.
+\end{gather}
+
+Une fois que les vecteurs $\boldsymbol{\bar{\mu}}$ et $\boldsymbol{\bar{\sigma}}$ sont calculés, on peut les utiliser et ainsi comparer leur distance avec les vecteurs latents du jeu de données de test. Comme dans la première approche, on peut utiliser la distance de Kullbach-Leibler et arriver avec une statistique de test $S$ pour l'observation $j$ donnée par :
+
+\begin{gather}  \label{eq:stat_2}
+S^{(j)} = D_{KL}\big[N(\boldsymbol{\mu^{(j)}}, \boldsymbol{\sigma^{(j)}}) || N(\boldsymbol{\bar{\mu}},  \boldsymbol{\bar{\sigma}})\big]
+\end{gather}
+
+Dans ce cas-ci, on s'attend à ce que les anomalies aient une statistique de test $S$ élevée, car la représentation moyenne du jeu de données $X$ devrait être représentative des observations "normales". C'est donc dire qu'une valeur élevée de la statistique $S$ devrait nous donner une petite valeur-$p$.
+
+L'algorithme \ref{alg:stat_t} résume les 3 étapes de notre approche dans un contexte utilisant la statistique de test $T$. L'algorithme \ref{alg:stat_s} est plutôt basé sur la statistique $S$.
+
+\begin{center}
+	\begin{algorithm}[H] \label{alg:stat_t}
+		\SetAlgoLined
+		\KwIn{Ensemble de données d'entraînement sans anomalie $x^{(i)}, i=1,...,n$ \\ Ensemble de données de test avec anomalies $x^{*(j)}, j=1, ..., k$
+		\\ Niveau de confiance $\alpha$}
+		\KwOut{Indicateurs d'anomalies $o^{(j)}, j=1,...,k$}
+		$\theta$, $\phi$ $\leftarrow$ paramètres de l'encodeur ($q_{\theta}(x)$) et du  décodeur ($p_{\phi}(z)$) du VAE entraîné\;
+		\For{i=1 to n}{
+			$ (\boldsymbol{\mu^{(i)}}, \boldsymbol{\sigma^{(i)}}) = q_{\theta}(x^{(i)})$ \\
+			$kl\_train^{(i)}=D_{KL}\big[N(\boldsymbol{\mu^{(i)}}, \boldsymbol{\sigma^{(i)}}) || N(0, I)\big]$
+		}
+		\For{j=1 to k}{
+			$(\boldsymbol{\mu^{(j)}}, \boldsymbol{\sigma^{(j)}}) = q_{\theta}(x^{*(j)})$ \\
+			$kl\_test^{(j)}=D_{KL}\big[N(\boldsymbol{\mu^{(j)}}, \boldsymbol{\sigma^{(j)}}) || N(0, I)\big]$\;
+			$r^{(j)} = \text{rank of } kl\_test^{(j)} \text{ in } \{kl\_train\}$\;
+			$p^{(j)} = r^{(j)} / n$ \;
+			\eIf{$p^{(j)} < \alpha$}{
+				$o^{(j)}$ = $vrai$
+			}
+			{
+				$o^{(j)}$ = $faux$
+			}
+		}
+		\KwRet{$\boldsymbol{o}$}
+		\caption{Algorithme de détection d'anomalies basé sur la statistique de test $T$}
+	\end{algorithm}
+\end{center}
+
+
+\begin{center}
+	\begin{algorithm}[H] \label{alg:stat_s}
+		\SetAlgoLined
+		\KwIn{Ensemble de données d'entraînement sans anomalie $x^{(i)}, i=1,...,n$ \\ Ensemble de données de test avec anomalies $x^{*(j)}, j=1, ..., k$
+		\\ Niveau de confiance $\alpha$}
+		\KwOut{Indicateurs d'anomalies $o^{(j)}, j=1,...,k$}
+		$\theta$, $\phi$ $\leftarrow$ paramètres de l'encodeur ($q_{\theta}(x)$) et du  décodeur ($p_{\phi}(z)$) du VAE entraîné\;
+		\For{i=1 to n}{
+			$(\boldsymbol{\mu^{(i)}}, \boldsymbol{\sigma^{(i)}}) = q_{\theta}(x^{(i)})$ \\
+		}
+		$\bar{\mu_l} = \frac{1}{n} \sum_{i=1}^{n} \mu_{l}^{(i)}$\;
+		$\bar{\sigma_l} = \frac{1}{n} \sum_{i=1}^{n} \sigma_{l}^{(i)}$\;
+		\For{i=1 to n}{
+			$kl\_train^{(i)}=D_{KL}\big[N(\boldsymbol{\mu^{(i)}}, \boldsymbol{\sigma^{(i)}}) || N(\boldsymbol{\bar{\mu}}, \boldsymbol{\bar{\sigma}})\big]$
+		}
+		\For{j=1 to k}{
+			$(\boldsymbol{\mu^{(j)}}, \boldsymbol{\sigma^{(j)}}) = q_{\theta}(x^{*(j)})$ \\
+			$kl\_test^{(j)}=D_{KL}\big[N(\boldsymbol{\mu^{(j)}}, \boldsymbol{\sigma^{(j)}}) || N(\boldsymbol{\bar{\mu}}, \boldsymbol{\bar{\sigma}})\big]$\;
+			$r^{(j)} = \text{rank of } kl\_test^{(j)} \text{ in } \{kl\_train\}$\;
+			$p^{(j)} =1 - ( r^{(j)} / n)$ \;
+			\eIf{$p^{(j)} < \alpha$}{
+				$o^{(j)}$ = $vrai$
+			}
+			{
+				$o^{(j)}$ = $faux$
+			}
+		}
+		\KwRet{$\boldsymbol{o}$}
+		\caption{Algorithme de détection d'anomalies basé sur la statistique de test $S$}
+	\end{algorithm}
+\end{center}
+

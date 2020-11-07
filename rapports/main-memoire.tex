@@ -32,22 +32,35 @@
   %\setmainfont{TeX Gyre Termes}       % texte en Termes (Times)
   %\setmathfont{TeX Gyre Termes Math}  % mathématiques en Termes (Times)
   
-  \usepackage{graphicx}
-  \usepackage{subcaption}
+ \usepackage{graphicx}
+ \usepackage{subcaption}
+ \usepackage{amsfonts}
+ \usepackage{float} 
   
-  % Section reference
-  \usepackage{hyperref}
+ % Section reference
+ \usepackage{hyperref}
 
-% Networks
-\def\layersep{2cm}
-\usepackage{tikz}
-\usepackage{verbatim}
-\usetikzlibrary{decorations.pathreplacing}
-\usetikzlibrary{decorations.pathreplacing}
-\usetikzlibrary{shapes.geometric}
+ % Networks
+ \def\layersep{2cm}
+ \usepackage{tikz}
+ \usepackage{verbatim}
+ \usetikzlibrary{decorations.pathreplacing}
+ \usetikzlibrary{decorations.pathreplacing}
+ \usetikzlibrary{shapes.geometric}
+	
+ %Tableau
+ \usepackage{array,multirow,makecell}
+ \usepackage{xcolor,colortbl}
+ \definecolor{Gray}{gray}{0.85}
+ \newcolumntype{a}{>{\columncolor{white}}c}
+ \setlength{\aboverulesep}{0pt}
+ \setlength{\belowrulesep}{0pt}
+ 
+ \newcommand{\PLH}{{\mkern-2mu\times\mkern-2mu}}
+ \newcommand\norm[1]{\left\lVert#1\right\rVert}
 
-% Algorithms
-\usepackage[ruled,vlined]{algorithm2e}
+	% Algorithms
+	\usepackage[ruled,vlined]{algorithm2e}
 
   %% Options de mise en forme du mode français de babel. Consulter la
   %% documentation du paquetage babel pour les options disponibles.
@@ -119,7 +132,7 @@
 
 \appendix                       % annexes le cas échéant
 
-\include{annexe}                % annexe A
+%\include{annexe}                % annexe A
 
 \bibliography{bibliography}                 % production de la bibliographie
 
