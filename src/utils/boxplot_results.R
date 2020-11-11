@@ -5,7 +5,7 @@ library(cowplot)
 library(gridExtra)
 library(grid)
 
-DATE <- "2020-10-09"
+DATE <- "2020-10-24"
 FOLDER <- file.path("university/deep-stat-thesis/results", DATE)
 MODELS <- c("kpca", "ae", "vae_isof", "da_vae")
 
@@ -47,7 +47,7 @@ compiled_results$contamination <- factor(compiled_results$contamination, levels=
 compiled_results[, scenario2 := gsub("scenario", "", scenario2)]
 compiled_results[scenario2 <=3, scenario3 := "Scenario 1 à 3"]
 compiled_results[scenario2 >3, scenario3 := "Scenario 4 à 6"]
-compiled_results[method == "kpca", method := "kPCA"]
+compiled_results[method == "kpca", method := "ACP"]
 compiled_results[method == "ae", method := "AE"]
 compiled_results[method == "isof_vae", method := "ISOF-VAE"]
 compiled_results[method == "da_vae", method := "DA-VAE"]
@@ -72,8 +72,8 @@ ggsave("auc_cars.pdf", auc_cars, width = 40, height = 20, units = "cm")
 # Plot AUC MNIST
 auc_mnist_1 <- ggplot(compiled_results[dataset == "mnist" & scenario2 <= 3,], aes(x = scenario2, y = auc, fill = method)) +
     geom_boxplot(position = position_dodge(1)) +
-    facet_grid(. ~ contamination, scales = "free") +
-    ylab(NULL) +
+    facet_grid(contamination ~ ., scales = "free") +
+    ylab("Aire sous la courbe ROC") +
     xlab(NULL) +
     scale_fill_discrete("Méthode") +
     theme_bw() +
@@ -87,9 +87,9 @@ auc_mnist_1 <- ggplot(compiled_results[dataset == "mnist" & scenario2 <= 3,], ae
 
 auc_mnist_2 <- ggplot(compiled_results[dataset == "mnist" & scenario2 > 3,], aes(x = scenario2, y = auc, fill = method)) +
     geom_boxplot(position = position_dodge(1)) +
-    facet_grid(. ~ contamination, scales = "free") +
+    facet_grid(contamination ~ ., scales = "free") +
     ylab(NULL) +
-    scale_x_discrete("Scénario de test") +
+    xlab(NULL) +
     scale_fill_discrete("Méthode") +
     theme_bw() + 
     theme(
@@ -105,14 +105,14 @@ legend <- get_legend(
   auc_mnist_2 + theme(legend.box.margin = margin(0, 4, 0, 0))
 )
 
-y.grob <- textGrob("Aire sous la courbe ROC", 
-                   gp=gpar(fontface="bold", fontsize=12), rot=90)
+x.grob <- textGrob("Scénario de test", 
+                   gp=gpar(fontface="bold", fontsize=12))
 
 auc_mnist <- plot_grid(
   auc_mnist_1 + theme(legend.position="none"),
   auc_mnist_2 + theme(legend.position="none"),
   align = 'vh',
-  nrow = 2
+  nrow = 1
 )
 
 auc_mnist <- plot_grid(
@@ -122,7 +122,7 @@ auc_mnist <- plot_grid(
   rel_heights = c(3, .4)
 )
 
-auc_mnist_final <- grid.arrange(arrangeGrob(auc_mnist, left = y.grob))
+auc_mnist_final <- grid.arrange(arrangeGrob(auc_mnist, bottom = x.grob))
 
 ggsave("auc_mnist.pdf", auc_mnist_final, width = 40, height = 20, units = "cm")
 

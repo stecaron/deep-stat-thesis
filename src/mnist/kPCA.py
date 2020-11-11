@@ -9,7 +9,7 @@ import math
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import KernelPCA, PCA
 from sklearn import metrics
 from sklearn.metrics import make_scorer
 from sklearn.model_selection import GridSearchCV, ShuffleSplit
@@ -44,8 +44,8 @@ def train(normal_digit, anomalies, folder, file, p_train, p_test):
         "INPUT_DIM": 28 * 28,  # In the case of MNIST
         "ALPHA": p_test,  # level of significance for the test
         # hyperparameters gamma in rbf kPCA
-        "GAMMA": [0.001, 0.01, 1],
-        "N_COMP": [150, 200]
+        "GAMMA": [1],
+        "N_COMP": [30]
     }
 
     # Log experiment parameterso0p
@@ -101,22 +101,26 @@ def train(normal_digit, anomalies, folder, file, p_train, p_test):
     test_data.data = test_data.data.view(-1, 28 * 28).numpy()
 
     # Train kPCA
-    param_grid = [{"gamma": hyper_params["GAMMA"],
-                   "n_components": hyper_params["N_COMP"]}]
+    # param_grid = [{"gamma": hyper_params["GAMMA"],
+    #                "n_components": hyper_params["N_COMP"]}]
 
-    kpca = KernelPCA(fit_inverse_transform=True,
-                     kernel="rbf",
-                     remove_zero_eig=True,
-                     n_jobs=-1)
+    param_grid = [{"n_components": hyper_params["N_COMP"]}]
 
-    my_scorer = make_scorer(anomaly_scorer, greater_is_better=True)
-    grid_search = GridSearchCV(kpca, param_grid, cv=ShuffleSplit(
-        n_splits=3), scoring=anomaly_scorer)
-    grid_search.fit(train_data.data, train_data.targets)
-    X_kpca = grid_search.transform(train_data.data)
-    X_train_back = grid_search.inverse_transform(X_kpca)
-    X_test_back = grid_search.inverse_transform(
-        grid_search.transform(test_data.data))
+    # kpca = KernelPCA(fit_inverse_transform=True,
+    #                  kernel="rbf",
+    #                  remove_zero_eig=True,
+    #                  n_jobs=-1)
+
+    kpca = PCA()
+
+    #my_scorer2 = make_scorer(my_scorer, greater_is_better=True)
+    # grid_search = GridSearchCV(kpca, param_grid, cv=ShuffleSplit(
+    #     n_splits=3), scoring=my_scorer)
+    kpca.fit(train_data.data)
+    X_kpca = kpca.transform(train_data.data)
+    X_train_back = kpca.inverse_transform(X_kpca)
+    X_test_back = kpca.inverse_transform(
+        kpca.transform(test_data.data))
 
     # Compute the distance between original data and reconstruction
     dist_train = numpy.linalg.norm(
@@ -147,7 +151,7 @@ def train(normal_digit, anomalies, folder, file, p_train, p_test):
 
     # Test performances on test
     test_probs = numpy.array(
-        [numpy.sum(xi >= dist_test) / len(dist_test) for xi in dist_test],
+        [numpy.sum(xi >= dist_train) / len(dist_train) for xi in dist_test],
         dtype=float)
     test_anomalies_ind = numpy.argwhere(
         test_probs >= 1 - hyper_params["ALPHA"])
@@ -239,4 +243,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #train(normal_digit=6, anomalies=[3,8], folder="", file="kpca", p_train=0.01, p_test=0.1)
+    #train(normal_digit=6, anomalies=[8], folder="", file="kpca", p_train=0.05, p_test=0.05)

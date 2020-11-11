@@ -5,7 +5,7 @@ import os
 import math
 
 
-RESULTS_FOLDER = "results/2020-10-09/"
+RESULTS_FOLDER = "results/2020-10-24/"
 
 if os.path.exists(RESULTS_FOLDER+"compiled_results.csv"):
     os.remove(RESULTS_FOLDER+"compiled_results.csv")

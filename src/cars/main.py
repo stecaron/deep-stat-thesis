@@ -169,7 +169,7 @@ def train(folder, file, p_train, p_test):
     experiment.log_figure(figure_name="empirical_test_hypothesis",
                           figure=fig,
                           overwrite=True)
-    plt.savefig(os.path.join(folder, "pvalues_" + file + ".png"))
+    plt.savefig(os.path.join(folder, "pvalues_" + file + ".pdf"))
     plt.show()
 
     # Compute some stats
@@ -202,7 +202,7 @@ def train(folder, file, p_train, p_test):
     experiment.log_figure(figure_name="rejetcted_observations",
                           figure=fig,
                           overwrite=True)
-    plt.savefig(os.path.join(folder, "rejected_observations_" + file + ".png"))
+    plt.savefig(os.path.join(folder, "rejected_observations_" + file + ".pdf"))
     plt.show()
 
     fig, axs = plt.subplots(4, 4)
@@ -219,7 +219,7 @@ def train(folder, file, p_train, p_test):
     experiment.log_figure(figure_name="better_observations",
                           figure=fig,
                           overwrite=True)
-    plt.savefig(os.path.join(folder, "better_observations_" + file + ".png"))
+    plt.savefig(os.path.join(folder, "better_observations_" + file + ".pdf"))
     plt.show()
 
     # Plot some errors
@@ -240,7 +240,7 @@ def train(folder, file, p_train, p_test):
         axs[i].imshow(image)
         axs[i].axis('off')
 
-    plt.savefig(os.path.join(folder, "false_positive_sample_" + file + ".png"))
+    plt.savefig(os.path.join(folder, "false_positive_sample_" + file + ".pdf"))
     plt.show()
 
     false_negative = numpy.where((index != preds) & (index == 0))[0]
@@ -258,7 +258,7 @@ def train(folder, file, p_train, p_test):
         axs[i].imshow(image)
         axs[i].axis('off')
 
-    plt.savefig(os.path.join(folder, "false_negative_sample_" + file + ".png"))
+    plt.savefig(os.path.join(folder, "false_negative_sample_" + file + ".pdf"))
     plt.show()
 
     # Save the results in the output file

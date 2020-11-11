@@ -12,14 +12,16 @@ import torch.utils.data as Data
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from sklearn.decomposition import KernelPCA, PCA
+from sklearn.decomposition import KernelPCA, PCA, TruncatedSVD
 from sklearn import metrics
 from sklearn.metrics import make_scorer
 from sklearn.model_selection import GridSearchCV, ShuffleSplit
 from sklearn.metrics import mean_squared_error
+from numpy import linalg as LA
 
 from src.cars.data import DataGenerator, define_filenames
 from src.mnist.utils.pca_functions import my_scorer, anomaly_scorer
+from src.cars.utils.pca_functions import compute_Z, compute_covariance_matrix, find_pcs, project_data
 
 
 def train(folder, file, p_train, p_test):
@@ -28,7 +30,7 @@ def train(folder, file, p_train, p_test):
     experiment = Experiment(project_name="deep-stats-thesis",
                             workspace="stecaron",
                             disabled=True)
-    experiment.add_tag("cars_dogs_kpca")
+    experiment.add_tag("cars_dogs_pca")
 
     # General parameters
     PATH_DATA_CARS = os.path.join(
@@ -41,14 +43,15 @@ def train(folder, file, p_train, p_test):
     # Define training parameters
     hyper_params = {
         "NUM_WORKERS": 0,
-        "IMAGE_SIZE": (128, 128),
-        "TRAIN_SIZE": 100,
+        "IMAGE_SIZE": (28, 28),
+        "TRAIN_SIZE": 5000,
         "TRAIN_NOISE": p_train,
         "TEST_SIZE": 1000,
         "TEST_NOISE": p_test,
         "ALPHA": p_test,  # level of significance for the test
         "GAMMA": [0.001, 0.01, 1],
-        "N_COMP": [130]
+        "N_COMP": 150,
+        "METHOD": "eigen_decomp"
     }
 
     # Log experiment parameterso0p
@@ -56,17 +59,9 @@ def train(folder, file, p_train, p_test):
 
     # Define some transformations
     transform = transforms.Compose([
-        transforms.Resize((28, 28)),
-        #transforms.CenterCrop((128, 128)),
+        transforms.Resize(hyper_params["IMAGE_SIZE"]),
         transforms.ToTensor(),
         transforms.Normalize(mean=MEAN, std=STD)
-    ])
-
-    transform = transforms.Compose([
-        transforms.Resize((64, 64)),
-        transforms.Grayscale(num_output_channels=1),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5], std=[0.5])
     ])
 
     # Load data
@@ -95,40 +90,84 @@ def train(folder, file, p_train, p_test):
                                   num_workers=hyper_params["NUM_WORKERS"],
                                   shuffle=False)
 
-    # Test
-     X_train = next(enumerate(train_loader))[1][0]
-    
+    # Split the train data into RGB
+    X_train = next(enumerate(train_loader))[1][0]
+    X_train_r = X_train[:, 0, :, :].flatten().reshape(
+        hyper_params["TRAIN_SIZE"], hyper_params["IMAGE_SIZE"][1] * hyper_params["IMAGE_SIZE"][1]).numpy()
+    X_train_g = X_train[:, 1, :, :].flatten().reshape(
+        hyper_params["TRAIN_SIZE"], hyper_params["IMAGE_SIZE"][1] * hyper_params["IMAGE_SIZE"][1]).numpy()
+    X_train_b = X_train[:, 2, :, :].flatten().reshape(
+        hyper_params["TRAIN_SIZE"], hyper_params["IMAGE_SIZE"][1] * hyper_params["IMAGE_SIZE"][1]).numpy()
 
-    X_train = next(enumerate(train_loader))[1][0].flatten().reshape(
-        hyper_params["TRAIN_SIZE"], 1 * 64 * 64).numpy()
-    X_test = next(enumerate(test_loader))[1][0].flatten().reshape(
-        hyper_params["TEST_SIZE"], 1 * 64 * 64).numpy()
+    # Split the test data in RGB
+    X_test = next(enumerate(test_loader))[1][0]
+    X_test_r = X_test[:, 0, :, :].flatten().reshape(
+        hyper_params["TEST_SIZE"], hyper_params["IMAGE_SIZE"][1] * hyper_params["IMAGE_SIZE"][1]).numpy()
+    X_test_g = X_test[:, 1, :, :].flatten().reshape(
+        hyper_params["TEST_SIZE"], hyper_params["IMAGE_SIZE"][1] * hyper_params["IMAGE_SIZE"][1]).numpy()
+    X_test_b = X_test[:, 2, :, :].flatten().reshape(
+        hyper_params["TEST_SIZE"], hyper_params["IMAGE_SIZE"][1] * hyper_params["IMAGE_SIZE"][1]).numpy()
 
-    # Train kPCA
-    # param_grid = [{"gamma": hyper_params["GAMMA"],
-    #                "n_components": hyper_params["N_COMP"]}]
+    # Train PCA
+    if (hyper_params["METHOD"] == "eigen_decomp"):
+        # R
+        COV = compute_covariance_matrix(X_train_r)
+        L, PCS = find_pcs(COV)
+        X_train_kpca = project_data(
+            X_train_r, PCS, L, hyper_params["N_COMP"], 0)
+        X_test_kpca = project_data(X_test_r, PCS, L, hyper_params["N_COMP"], 0)
+        component_matrix = numpy.delete(PCS, range(
+            hyper_params["N_COMP"], PCS.shape[1]), axis=1)
+        Ut = component_matrix.T
+        X_train_back_r = numpy.dot(X_train_kpca, Ut)
+        X_test_back_r = numpy.dot(X_test_kpca, Ut)
 
-    param_grid = [{"n_components": hyper_params["N_COMP"]}]
+        # G
+        COV = compute_covariance_matrix(X_train_g)
+        L, PCS = find_pcs(COV)
+        X_train_kpca = project_data(
+            X_train_g, PCS, L, hyper_params["N_COMP"], 0)
+        X_test_kpca = project_data(X_test_g, PCS, L, hyper_params["N_COMP"], 0)
+        component_matrix = numpy.delete(PCS, range(
+            hyper_params["N_COMP"], PCS.shape[1]), axis=1)
+        Ut = component_matrix.T
+        X_train_back_g = numpy.dot(X_train_kpca, Ut)
+        X_test_back_g = numpy.dot(X_test_kpca, Ut)
 
-    # kpca = KernelPCA(fit_inverse_transform=True,
-    #                  kernel="rbf",
-    #                  remove_zero_eig=True,
-    #                  n_jobs=-1)
+        # B
+        COV = compute_covariance_matrix(X_train_b)
+        L, PCS = find_pcs(COV)
+        X_train_kpca = project_data(
+            X_train_b, PCS, L, hyper_params["N_COMP"], 0)
+        X_test_kpca = project_data(X_test_b, PCS, L, hyper_params["N_COMP"], 0)
+        component_matrix = numpy.delete(PCS, range(
+            hyper_params["N_COMP"], PCS.shape[1]), axis=1)
+        Ut = component_matrix.T
+        X_train_back_b = numpy.dot(X_train_kpca, Ut)
+        X_test_back_b = numpy.dot(X_test_kpca, Ut)
 
-    kpca = PCA(svd_solver="randomized")
+    elif (hyper_params["METHOD"] == "svd"):
+        svd = TruncatedSVD(n_components=hyper_params["N_COMP"])
+        svd.fit(X_train)
 
-    # my_scorer2 = make_scorer(my_scorer, greater_is_better=True)
-    # grid_search = GridSearchCV(kpca, param_grid, cv=ShuffleSplit(
-    #     n_splits=3), scoring=my_scorer2)
-    kpca.fit(X_train)
-    X_kpca = kpca.transform(X_train)
-    X_train_back = kpca.inverse_transform(X_kpca)
-    X_test_back = kpca.inverse_transform(
-        kpca.transform(X_test))
+        X_train_kpca = svd.transform(X_train)
+        X_test_kpca = svd.transform(X_test)
+
+        X_train_back = svd.inverse_transform(X_train_kpca)
+        X_test_back = svd.inverse_transform(X_test_kpca)
+    else:
+        raise RuntimeError('Method not implemented')
 
     # Compute the distance between original data and reconstruction
-    dist_train = numpy.linalg.norm(X_train - X_train_back, axis=1)
-    dist_test = numpy.linalg.norm(X_test - X_test_back, axis=1)
+    dist_train_r = numpy.linalg.norm(X_train_r - X_train_back_r, axis=1)
+    dist_train_g = numpy.linalg.norm(X_train_g - X_train_back_g, axis=1)
+    dist_train_b = numpy.linalg.norm(X_train_b - X_train_back_b, axis=1)
+    dist_train = numpy.mean([dist_train_r, dist_train_g, dist_train_b], axis=0)
+
+    dist_test_r = numpy.linalg.norm(X_test_r - X_test_back_r, axis=1)
+    dist_test_g = numpy.linalg.norm(X_test_g - X_test_back_g, axis=1)
+    dist_test_b = numpy.linalg.norm(X_test_b - X_test_back_b, axis=1)
+    dist_test = numpy.mean([dist_test_r, dist_test_g, dist_test_b], axis=0)
 
     # Test performances on train
     train_anomalies_ind = numpy.argsort(dist_train)[int(
@@ -175,6 +214,11 @@ def train(folder, file, p_train, p_test):
     experiment.log_metric("test_f1_score", test_f1_score)
     experiment.log_metric("test_auc", test_auc)
     experiment.log_metric("test_average_precision", test_average_precision)
+
+    # Test some reconstruction
+    train_reconstructed_example = numpy.concatenate([numpy.expand_dims(X_train_back_r.reshape(hyper_params["TRAIN_SIZE"], hyper_params["IMAGE_SIZE"][1], hyper_params["IMAGE_SIZE"][1]), 3),
+                                                     numpy.expand_dims(X_train_back_g.reshape(hyper_params["TRAIN_SIZE"], hyper_params["IMAGE_SIZE"][1], hyper_params["IMAGE_SIZE"][1]), 3),
+                                                     numpy.expand_dims(X_train_back_b.reshape(hyper_params["TRAIN_SIZE"], hyper_params["IMAGE_SIZE"][1], hyper_params["IMAGE_SIZE"][1]), 3)], axis=3)
 
     # Plot p-values
     preds_order = numpy.argsort(test_probs)
@@ -235,7 +279,7 @@ def train(folder, file, p_train, p_test):
 def main():
 
     parser = argparse.ArgumentParser(
-        prog="kPCA on ImageNet",
+        prog="PCA on ImageNet",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -268,5 +312,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    #train("", "test_kpca", 0.1, 0.1)
+    # main()
+    train("", "test_pca", 0.01, 0.1)

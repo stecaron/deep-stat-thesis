@@ -93,6 +93,8 @@ def train_mnist_vae(train_loader,
     else:
         loss_network = None
 
+    KLD_perc_list = []
+
     # cols_mu = ["mu_"+str(i) for i in range(latent_dim)]
     # cols_var = ["var_"+str(i) for i in range(latent_dim)]
     # cols_name = ["epoch", "outliers", "kld", "rcl", "pen"] + cols_mu + cols_var
@@ -167,6 +169,7 @@ def train_mnist_vae(train_loader,
 
         train_loss = train_loss / len(train_loader) * train_loader.batch_size
         KLD_perc = numpy.around((KLD / loss).cpu().detach().numpy(), 2)
+        KLD_perc_list.append(KLD_perc)
 
         end = time.time()
         print(
@@ -184,3 +187,11 @@ def train_mnist_vae(train_loader,
             model.cpu()
             torch.save(model, f'{model_name}.pt')
             model.save_weights(f'./{model_name}.h5')
+
+        # Save KLD percentage
+        if epoch == (n_epoch-1):
+            col_names = ["epoch", "kld_percentage"]
+            df_results = pandas.DataFrame(columns=col_names)
+            df_results["epoch"] = numpy.array(range(n_epoch))
+            df_results["kld_percentage"] = numpy.array(KLD_perc_list)
+            df_results.to_csv(f'{model_name}_kld_percentage.csv')
