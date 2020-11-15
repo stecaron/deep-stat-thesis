@@ -403,9 +403,9 @@ D_{\text{KL}}(N_{\boldsymbol \mu, \boldsymbol \sigma} || N_{0,I}) &= \frac{1}{2}
 
 Comme expliquée un peu plus tôt, la représentation latente de ce type d'autoencodeur est simulée d'une loi normale multivariée, donc stochastique. Cela pourrait en théorie rendre complexe la tâche d'optimisation du réseau. En effet, les paramètres du réseau, soit ceux de l'encodeur et du décodeur, sont optimisés par descente du gradient. On calcule donc la perte $L(x)$ et on dérive cette fonction par rapport à chaque paramètres du réseau. Mais qu'en est-il de la loi normale multivariée qui a généré notre représentation latente? Afin de simplifier le calcul des dérivées lors de la rétropropagation, on redéfinit le calcul de la représentation $z$ dans un format plus simple. Cette simplification est communément appelée la  \textit{reparametrization trick}. En effet, il est possible pour certaines distributions, comme la loi normale, de séparer les paramètres ($\mu$ et $\sigma$)  de la composante stochastique. Concrètement, on peut définir une simulation normale multivariée comme:
 
-$$
+\begin{equation} \label{eq:latent_formula}
 \boldsymbol{z} = \boldsymbol{\mu} + \boldsymbol{\sigma} *\boldsymbol{\epsilon}
-$$
+\end{equation}
 
 où $\boldsymbol{\epsilon} \sim N(0,I)$. En bref, cela signifie que la couche $z$, illustrée dans la figure \ref{fig:VAEstructure}, est générée à partir de deux couches de paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ et d'une simulation $N(0,I)$. Cette réécriture permet d'isoler la composante stochastique associée à la loi normale. Lors de la rétropropagation, on peut calculer les dérivées des paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ seulement et ignorer $\boldsymbol{\epsilon}$. 
 
