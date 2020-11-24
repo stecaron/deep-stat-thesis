@@ -51,6 +51,12 @@ Then, you can run different experiments by using the command examples from `resu
 
 Finally, to gather all results from multiple experiments, you can use the python script `src/utils/compile_results.py`
 
+## Folders
+
+The scripts used for _ImageNet_ experiment is under `src/cars/` directory.
+
+The scripts used for _MNIST_ experiment is under `src/mnist/` directory.
+
 # Collaborators
 
 - [Stéphane Caron](https://www.researchgate.net/profile/Stephane_Caron4) (Myself, M.Sc student)
