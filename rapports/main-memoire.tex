@@ -20,7 +20,7 @@
   %% Charger ici les autres paquetages nécessaires pour le document.
   %% Quelques exemples; décommenter au besoin.
   \usepackage{amsmath}       % recommandé pour les mathématiques
-  %\usepackage{icomma}        % gestion de la virgule dans les nombres
+  \usepackage{icomma}        % gestion de la virgule dans les nombres
 
   %% Utilisation d'une autre police de caractères pour le document.
   %% - Sous LaTeX
@@ -79,8 +79,8 @@
  \newcommand{\PLH}{{\mkern-2mu\times\mkern-2mu}}
  \newcommand\norm[1]{\left\lVert#1\right\rVert}
 
-	% Algorithms
-	\usepackage[ruled,vlined]{algorithm2e}
+% Algorithms
+\usepackage[ruled,vlined]{algorithm2e}
 
   %% Options de mise en forme du mode français de babel. Consulter la
   %% documentation du paquetage babel pour les options disponibles.
@@ -98,28 +98,27 @@
   %% Composition de la page frontispice. Remplacer les éléments entre < >.
   %% Supprimer les caractères < >. Couper un long titre ou un long
   %% sous-titre manuellement avec \\.
-  \titre{<Titre principal>}
+  \titre{Détection d'anomalies basée sur les représentation latentes d'un autoencodeur variationnel}
   % \titre{Ceci est un exemple de long titre \\
   %   avec saut de ligne manuel}
   % \soustitre{Sous-titre le cas échéant}
   % \soustitre{Ceci est un exemple de long sous-titre \\
   %   avec saut de ligne manuel}
-  \auteur{<Prénom Nom>}
-  \programme{Maîtrise en <discipline> <-- majeure, s'il y a lieu>}
-  \direction{<Prénom Nom>, <directeur ou directrice> de recherche}
-  % \codirection{<Prénom Nom>, <codirecteur ou codirectrice> de recherche}
+  \auteur{Stéphane Caron}
+  \programme{Maîtrise en statistique - avec mémoire}
+  \direction{Thierry Duchesne, directeur de recherche}
+  \codirection{François-Michel De Rainville, codirecteur de recherche}
   % \codirection{<Prénom Nom>, <codirecteur ou codirectrice> de recherche \\
   %              <Prénom Nom>, <codirecteur ou codirectrice> de recherche}
 
   %% Les commandes ci-dessous servent uniquement pour la création
   %% d'une page de titre (interdite lors du dépôt à la FESP).
-  % \annee{<20xx>}
+  \annee{2020}
 
 \begin{document}
 
 \frontmatter                    % pages liminaires
-
-%\frontispice                    % production de la page frontispice
+\pagetitre                    % production de la page frontispice
 
 \include{resume}                % résumé français
 \include{abstract}              % résumé anglais
@@ -142,11 +141,11 @@
 
 \mainmatter                     % corps du document
 
-\include{introduction_diff}          % introduction
+\include{introduction}          % introduction
 \include{background}             % background
 \include{methodologie}             % methodologie
-\include{experiments_diff}             % experimentations
-\include{conclusion_diff}            % conclusion
+\include{experiments}             % experimentations
+\include{conclusion}            % conclusion
 
 \appendix                       % annexes le cas échéant
 
