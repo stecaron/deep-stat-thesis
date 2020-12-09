@@ -20,7 +20,7 @@
   %% Charger ici les autres paquetages nécessaires pour le document.
   %% Quelques exemples; décommenter au besoin.
   \usepackage{amsmath}       % recommandé pour les mathématiques
-  %\usepackage{icomma}        % gestion de la virgule dans les nombres
+  \usepackage{icomma}        % gestion de la virgule dans les nombres
 
   %% Utilisation d'une autre police de caractères pour le document.
   %% - Sous LaTeX
@@ -32,19 +32,52 @@
   %\setmainfont{TeX Gyre Termes}       % texte en Termes (Times)
   %\setmathfont{TeX Gyre Termes Math}  % mathématiques en Termes (Times)
   
-  \usepackage{graphicx}
-  \usepackage{subcaption}
+  %DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF
+  %DIF UNDERLINE PREAMBLE %DIF PREAMBLE
+  \RequirePackage[normalem]{ulem} %DIF PREAMBLE
+  \RequirePackage{color}\definecolor{RED}{rgb}{1,0,0}\definecolor{BLUE}{rgb}{0,0,1} %DIF PREAMBLE
+  \providecommand{\DIFadd}[1]{{\protect\color{blue}\uwave{#1}}} %DIF PREAMBLE
+  \providecommand{\DIFdel}[1]{{\protect\color{red}\sout{#1}}}                      %DIF PREAMBLE
+  %DIF SAFE PREAMBLE %DIF PREAMBLE
+  \providecommand{\DIFaddbegin}{} %DIF PREAMBLE
+  \providecommand{\DIFaddend}{} %DIF PREAMBLE
+  \providecommand{\DIFdelbegin}{} %DIF PREAMBLE
+  \providecommand{\DIFdelend}{} %DIF PREAMBLE
+  %DIF FLOATSAFE PREAMBLE %DIF PREAMBLE
+  \providecommand{\DIFaddFL}[1]{\DIFadd{#1}} %DIF PREAMBLE
+  \providecommand{\DIFdelFL}[1]{\DIFdel{#1}} %DIF PREAMBLE
+  \providecommand{\DIFaddbeginFL}{} %DIF PREAMBLE
+  \providecommand{\DIFaddendFL}{} %DIF PREAMBLE
+  \providecommand{\DIFdelbeginFL}{} %DIF PREAMBLE
+  \providecommand{\DIFdelendFL}{} %DIF PREAMBLE
+  %DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF
   
-  % Section reference
-  \usepackage{hyperref}
+ \usepackage{graphicx}
+ \usepackage{subcaption}
+ \usepackage{amsfonts}
+ \usepackage{float} 
+  
+ % Section reference
+ \usepackage{hyperref}
 
-% Networks
-\def\layersep{2cm}
-\usepackage{tikz}
-\usepackage{verbatim}
-\usetikzlibrary{decorations.pathreplacing}
-\usetikzlibrary{decorations.pathreplacing}
-\usetikzlibrary{shapes.geometric}
+ % Networks
+ \def\layersep{2cm}
+ \usepackage{tikz}
+ \usepackage{verbatim}
+ \usetikzlibrary{decorations.pathreplacing}
+ \usetikzlibrary{decorations.pathreplacing}
+ \usetikzlibrary{shapes.geometric}
+	
+ %Tableau
+ \usepackage{array,multirow,makecell}
+ \usepackage{xcolor,colortbl}
+ \definecolor{Gray}{gray}{0.85}
+ \newcolumntype{a}{>{\columncolor{white}}c}
+ \setlength{\aboverulesep}{0pt}
+ \setlength{\belowrulesep}{0pt}
+ 
+ \newcommand{\PLH}{{\mkern-2mu\times\mkern-2mu}}
+ \newcommand\norm[1]{\left\lVert#1\right\rVert}
 
 % Algorithms
 \usepackage[ruled,vlined]{algorithm2e}
@@ -65,32 +98,33 @@
   %% Composition de la page frontispice. Remplacer les éléments entre < >.
   %% Supprimer les caractères < >. Couper un long titre ou un long
   %% sous-titre manuellement avec \\.
-  \titre{<Titre principal>}
+  \titre{Détection d'anomalies basée sur les représentations latentes d'un autoencodeur variationnel}
   % \titre{Ceci est un exemple de long titre \\
   %   avec saut de ligne manuel}
   % \soustitre{Sous-titre le cas échéant}
   % \soustitre{Ceci est un exemple de long sous-titre \\
   %   avec saut de ligne manuel}
-  \auteur{<Prénom Nom>}
-  \programme{Maîtrise en <discipline> <-- majeure, s'il y a lieu>}
-  \direction{<Prénom Nom>, <directeur ou directrice> de recherche}
-  % \codirection{<Prénom Nom>, <codirecteur ou codirectrice> de recherche}
-  % \codirection{<Prénom Nom>, <codirecteur ou codirectrice> de recherche \\
+  \auteur{Stéphane Caron}
+  \programme{Maîtrise en statistique - avec mémoire}
+  \direction{Thierry Duchesne, directeur de recherche}
+  \codirection{François-Michel De Rainville, conseiller en recherche \\
+  						Samuel Perreault, conseiller en recherche}
   %              <Prénom Nom>, <codirecteur ou codirectrice> de recherche}
 
   %% Les commandes ci-dessous servent uniquement pour la création
   %% d'une page de titre (interdite lors du dépôt à la FESP).
-  % \annee{<20xx>}
+  \annee{2020}
 
 \begin{document}
 
 \frontmatter                    % pages liminaires
-
-%\frontispice                    % production de la page frontispice
+\pagetitre                    % production de la page frontispice
 
 \include{resume}                % résumé français
 \include{abstract}              % résumé anglais
 \cleardoublepage
+
+\include{remerciements}         % remerciements
 
 \tableofcontents                % production de la TdM
 \cleardoublepage
@@ -101,13 +135,9 @@
 \listoffigures                  % production de la liste des figures
 \cleardoublepage
 
-\dedicace{<Dédicace si désiré>}
-\cleardoublepage
 
 %\epigraphe{<Texte de l'épigraphe>}{<Source ou auteur>}
 %\cleardoublepage
-
-\include{remerciements}         % remerciements
 
 \mainmatter                     % corps du document
 
@@ -119,7 +149,7 @@
 
 \appendix                       % annexes le cas échéant
 
-\include{annexe}                % annexe A
+%\include{annexe}                % annexe A
 
 \bibliography{bibliography}                 % production de la bibliographie
 
