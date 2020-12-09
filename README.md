@@ -4,25 +4,58 @@ This repo contains all the work related to my master's thesis at the *Départeme
 
 ## Context
 
-Anomaly detection is a challenging topic that generated a lot of research in multiple fields such as statistics, machine learning, computer vision, etc. An anomaly, or what can also be called an outlier, is something intrinsic to all those fields because outliers are by nature, something interesting to extract or to remove from a given source of data. It can be interesting to extract, because it is what we are looking for in the problem or it could interesting to remove prior to another learning problem. One challenge with anomaly detection is that we often deal with unlabeled data, that means we have to tackle the problem in an unsupervised manner. Another important challenge is that those detection algorithms often need a threshold. That threshold allows us to take a decision regarding a certain anomaly. How do we set that threshold, or in others words, how do we say that observation is sufficiently different to be anormal? In some real life situations, we could have in hand a certain dataset or a historic of observations we know to be entirely normal (or at least almost). Normal means the contrary of anomaly here, not the distribution ... However, we anticipate anormal observations in the future, but we don't really know how much we will have, will they be variable in the future, what will they will look like, etc. In that sense, that project aims to be able to represent (or learn) what is normal and also detect anomalies using a confidence level more that a threshold based on a metric.
+Anomaly detection is a challenging topic that generated a lot of research in multiple fields such as statistics, machine learning, computer vision, etc. An anomaly, or what can also be called an outlier, is something intrinsic to all those fields because outliers are by nature, something interesting to extract or to remove from a given source of data. It can be interesting to extract, because it is what we are looking for in the problem or it could interesting to remove prior to another learning problem. One challenge with anomaly detection is that we often deal with unlabeled data, that means we have to tackle the problem in an unsupervised manner. Another important challenge is that those detection algorithms often need a threshold. That threshold allows us to take a decision regarding a certain anomaly. How do we set that threshold, or in others words, how do we say that observation is sufficiently different to be anormal? In some real life situations, we could have in hand a certain dataset or a historic of observations we know to be entirely normal (or at least almost). Normal means the contrary of anomaly here, not the distribution ... However, we anticipate anormal observations in the future, but we don't really know how much we will have, will they be variable in the future, what will they will look like, etc. In that sense, that project aims to be able to represent (or learn) what is normal and also detect anomalies using a intuitive filtration level rather than a threshold calculated on a distance.
 
 ## Project description
 
 ### Objectives
 
-The main objective of this project is indeed to be able to detect anomalies, but with an unsupervised algorithm. Afterward, we want to be able to detect anomalies using a confidence level so that the detection decision is based on a confidence level and not a fixed threshold. Finally, we want to be able to do those things on complex data structures, such as images. However, our algorithm will detect anomalies at the "observation level", not part of an observation (i.e. detect anomalies within an image).
+The main objective of this project is indeed to be able to detect anomalies, but with an unsupervised algorithm. Afterward, we want to be able to detect anomalies using an intuitive threshold approach so that the detection decision is easier to take. Finally, we want to be able to do those things on complex data structures, such as images. Our algorithm will detect anomalies at the "observation level", not part of an observation (i.e. detect anomalies within an image).
 
 ### Detailed approach
 
-The approach chosen is to use autoencoders, more precisely varitional autoencoders, to learn a simpler representation of complex observations. An autoencoders is an unsupervised neural networks algorithm that is meant to predict the input as its output. However, it needs to do it by encoding the information in a certain representation, and then decodes it back to the original format by loosing less information as possible. Varitional autoencoders (VAE) are a specific case of autoencoders where the model is not just trying to predict back the inputs by encoding a useful representation, but also to force that representation to have a certain distribution. That known distribution, will allows us to have clear idea of what should be an inlier and what should be an outlier. In fact, if the VAE is able to understand a certain input, encodes it into a simpler representation that we known some properties, we will be able to interpret that representation for new observations and conclude with hypotheses testing if that observation is an anomaly or not by using a confidence level and not a fixed threshold.
+The approach chosen is to use autoencoders, more precisely varitional autoencoders, to learn a simpler representation of complex observations. An autoencoders is an unsupervised neural networks algorithm that is meant to predict the input as its output. However, it needs to do it by encoding the information in a certain representation, and then decodes it back to the original format by loosing less information as possible. Varitional autoencoders (VAE) are a specific case of autoencoders where the model is not just trying to predict back the inputs by encoding a useful representation, but also to force that representation to have a certain distribution. That known distribution, will allows us to have clear idea of what should be an inlier and what should be an outlier. In fact, if the VAE is able to understand a certain input, encodes it into a simpler representation that we known some properties, we will be able to interpret that representation for new observations and conclude if that observation is an anomaly or not by using a intuitive filtration level.
 
 ### Academic added-value
 
-The academic added-value of that project is to put togheter the stastical theory behind hypotheses testing and the power of autoencoders to learn complex data structures and encoded them in simpler representations. That way, we are adding a statistical confidence level in components learned by complex algorithms such as neural networks. At the end, we will present another kind of anomaly detection algorithm. 
+The academic added-value of that project is to put togheter the statistical properties of Kullback-Leibler distance and the power of autoencoders to learn complex data structures and encoded them in simpler representations. At the end, we will present a new approach to detect anomalies out of complex images.
 
-### Application
+## Reproduce the results
 
-In this project, we want to apply our research to a specific imagery application associated with cars insurance. In fact, people making accidents have the chance to take photos of their car and send them to the insurer in order to accerate the claim process. To do proper evaluation, the insurer needs specific photos of the car from different angles (front, behind, left and right side, interior, etc). With our algorithm, we would like to be able to learn what each of those images look like in order to provide instant feedback to the user about a taken photo. For example, if a front picture does not look like a front car, we could ask him: "Are you sure that picture is the front of your car?". Anomalies could be caused by the user taking the wrong angle or just a false manipulation (ex: picture of the ground or the sky). To do so, we need develop a framework where the model basically learns what is normal, and then provide confidence level about what deviates from that normality.
+To reproduce the results you will first need to download the data :
+
+```
+# create a folder to save the data
+mkdir -p ~/data
+# download stanford cars
+wget -c http://imagenet.stanford.edu/internal/car196/cars_train.tgz
+tar zxvf cars_train.tgz -C ~/data
+mv ~/data/cars_train ~/data/stanford_cars
+rm cars_train.tgz
+# download stanford dogs
+wget -c http://vision.stanford.edu/aditya86/ImageNetDogs/images.tar
+tar -xvf images.tar -C ~/data
+mkdir ~/data/stanford_dogs2
+find ~/data/Images/ -type f -print0 | xargs -0 mv -t ~/data/stanford_dogs2
+rm -rf ~/data/Images
+rm images.tar
+# download indoor scene dataset
+wget -c http://groups.csail.mit.edu/vision/LabelMe/NewImages/indoorCVPR_09.tar
+tar -xvf indoorCVPR_09.tar -C ~/data
+find ~/data/Images/ -type f -print0 | xargs -0 mv -t ~/data/stanford_dogs2
+rm -rf ~/data/Images
+rm indoorCVPR_09.tar
+```
+
+Then, you can run different experiments by using the command examples from `results/launch_*` files.
+
+Finally, to gather all results from multiple experiments, you can use the python script `src/utils/compile_results.py`
+
+## Folders
+
+The scripts used for _ImageNet_ experiment is under `src/cars/` directory.
+
+The scripts used for _MNIST_ experiment is under `src/mnist/` directory.
 
 # Collaborators
 

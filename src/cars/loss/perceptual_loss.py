@@ -5,7 +5,7 @@ from collections import namedtuple
 
 
 
-LossOutput = namedtuple("LossOutput", ["relu3_3"])
+LossOutput = namedtuple("LossOutput", ["relu2_2"])
 # https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/3
 class LossNetwork(torch.nn.Module):
     def __init__(self, device):
@@ -17,8 +17,8 @@ class LossNetwork(torch.nn.Module):
         self.vgg_layers = vgg_model.features
         self.layer_name_mapping = {
             #'3': "relu1_2",
-            #'8': "relu2_2",
-            '15': "relu3_3",
+            '8': "relu2_2",
+            #'15': "relu3_3",
             #'22': "relu4_3"
         }
 
@@ -43,12 +43,12 @@ def preprocess_vgg16(data, device):
         '15': "relu3_3",
         #'22': "relu4_3"
     }
-        
+
     output = {}
-        
+
     for name, module in vgg_layers._modules.items():
         data = module(data)
         if name in layer_name_mapping:
             output[layer_name_mapping[name]] = data
-    
+
     return output['relu3_3']

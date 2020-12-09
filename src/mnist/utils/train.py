@@ -1,10 +1,12 @@
 import numpy
 import time
 import torch
+import pandas
 
 from src.mnist.utils.loss_vae import calculate_loss
 from src.cars.loss.perceptual_loss import LossNetwork
 from src.mnist.utils.loss_vae import perceptual_loss
+from src.cars.loss.sparse_loss import sparse_loss
 
 
 def train_mnist(train_loader,
@@ -15,11 +17,11 @@ def train_mnist(train_loader,
                 device,
                 model_name,
                 loss_func=None,
-                perceptual_ind=False):
+                loss_type="perceptual"):
 
     model.train()
 
-    if perceptual_ind:
+    if loss_type == "perceptual":
         loss_network = LossNetwork(device)
 
     for epoch in range(n_epoch):
@@ -36,10 +38,15 @@ def train_mnist(train_loader,
             inputs = inputs.to(device)
             outputs = inputs.to(device)
 
-            decoded = model(inputs)
+            encoded, decoded = model(inputs)
 
-            if perceptual_ind:
+            if loss_type == "perceptual":
                 loss = perceptual_loss(outputs, decoded, loss_network)
+            elif loss_type == "sparsity":
+                mse_loss = loss_func(decoded, outputs)
+                l1_loss = sparse_loss(model, inputs)
+                # add the sparsity penalty
+                loss = mse_loss + 0.001 * l1_loss
             else:
                 loss = loss_func(decoded, outputs)
 
@@ -67,6 +74,7 @@ def train_mnist(train_loader,
 
 
 def train_mnist_vae(train_loader,
+                    #test_loader,
                     model,
                     criterion,
                     n_epoch,
@@ -76,24 +84,24 @@ def train_mnist_vae(train_loader,
                     beta_epoch,
                     model_name,
                     device,
+                    #latent_dim,
                     loss_type="binary",
                     flatten=True):
-    # set the train mode
-    model.train()
+
     if loss_type == "perceptual":
         loss_network = LossNetwork(device)
     else:
         loss_network = None
 
+    KLD_perc_list = []
 
+    # cols_mu = ["mu_"+str(i) for i in range(latent_dim)]
+    # cols_var = ["var_"+str(i) for i in range(latent_dim)]
+    # cols_name = ["epoch", "outliers", "kld", "rcl", "pen"] + cols_mu + cols_var
+    # df_test_monitoring = pandas.DataFrame(columns=cols_name)
 
     for epoch in range(n_epoch):
         train_loss = 0.0
-
-        list_mu_maj = []
-        list_mu_min = []
-        list_var_maj = []
-        list_var_min = []
 
         step = 0
         for beta_step in beta_epoch:
@@ -110,6 +118,8 @@ def train_mnist_vae(train_loader,
             if flatten:
                 x = x.view(-1, 28 * 28)
 
+            model.train()
+
             model.to(device)
             x = x.to(device)
             y = y.to(device)
@@ -123,33 +133,43 @@ def train_mnist_vae(train_loader,
                                        loss_type=loss_type,
                                        beta=beta,
                                        loss_network=loss_network)
+            experiment.log_metric("KLD", KLD.detach().cpu())
+            experiment.log_metric("RCL", loss.detach().cpu() - KLD.detach().cpu())
             loss.backward()
             train_loss += loss.item()
             criterion.step()
-            #scheduler.step()
 
             z_mu = z_mu.cpu()
             z_var = z_var.cpu()
             y = y.cpu()
 
-            list_mu_maj.append(torch.mean(torch.mean(z_mu[numpy.where(y == 0)], 0)))
-            list_mu_min.append(torch.mean(torch.mean(z_mu[numpy.where(y != 0)], 0)))
-            list_var_maj.append(torch.mean(torch.mean(torch.exp(z_var[numpy.where(y == 0)]), 0)))
-            list_var_min.append(torch.mean(torch.mean(torch.exp(z_var[numpy.where(y != 0)]), 0)))
+        # Test on test data loader
+        # for i, (x, y) in enumerate(test_loader):
+        #     # reshape the data into [batch_size, 784]
+        #     if flatten:
+        #         x = x.view(-1, 28 * 28)
+
+        #     model.to(device)
+        #     x = x.to(device)
+        #     y = y.to(device)
+
+        #     model.eval()
+        #     reconstructed_x, z_mu, z_var, _ = model(x, device=device)
+        #     loss, KLD, RCL = calculate_loss(x,
+        #                                reconstructed_x,
+        #                                z_mu,
+        #                                z_var,
+        #                                loss_type=loss_type,
+        #                                beta=beta,
+        #                                loss_network=loss_network)
+        #     pen = loss - KLD - RCL
+        #     data_epoch = numpy.concatenate((numpy.array(epoch).reshape(1), y.detach().cpu().numpy(), KLD.detach().cpu().numpy().reshape(1), RCL.detach().cpu().numpy().reshape(1), pen.detach().cpu().numpy().reshape(1), z_mu.detach().cpu().numpy().reshape(-1), numpy.exp(z_var.detach().cpu().reshape(-1))))
+        #     df_test_monitoring = df_test_monitoring.append(pandas.DataFrame(data_epoch.reshape(1,-1), columns=cols_name), ignore_index=True)
 
 
         train_loss = train_loss / len(train_loader) * train_loader.batch_size
         KLD_perc = numpy.around((KLD / loss).cpu().detach().numpy(), 2)
-
-        mean_mu_maj = sum(list_mu_maj)/len(list_mu_maj)
-        mean_mu_min = sum(list_mu_min)/len(list_mu_min)
-        mean_var_maj = sum(list_var_maj)/len(list_var_maj)
-        mean_var_min = sum(list_var_min)/len(list_var_min)
-
-        experiment.log_metric("mean_mu_maj", mean_mu_maj.detach().cpu())
-        experiment.log_metric("mean_mu_min", mean_mu_min.detach().cpu())
-        experiment.log_metric("mean_var_maj", mean_var_maj.detach().cpu())
-        experiment.log_metric("mean_var_min", mean_var_min.detach().cpu())
+        KLD_perc_list.append(KLD_perc)
 
         end = time.time()
         print(
@@ -158,6 +178,8 @@ def train_mnist_vae(train_loader,
         experiment.log_metric("train_loss", train_loss)
         experiment.log_metric("kld_percentage", KLD_perc)
 
+        # df_test_monitoring.to_csv("test_loss.csv")
+
         if epoch == 0:
             best_loss = train_loss
 
@@ -165,3 +187,11 @@ def train_mnist_vae(train_loader,
             model.cpu()
             torch.save(model, f'{model_name}.pt')
             model.save_weights(f'./{model_name}.h5')
+
+        # Save KLD percentage
+        if epoch == (n_epoch-1):
+            col_names = ["epoch", "kld_percentage"]
+            df_results = pandas.DataFrame(columns=col_names)
+            df_results["epoch"] = numpy.array(range(n_epoch))
+            df_results["kld_percentage"] = numpy.array(KLD_perc_list)
+            df_results.to_csv(f'{model_name}_kld_percentage.csv')

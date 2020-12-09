@@ -18,13 +18,14 @@ class VAencoder(nn.Module):
         super().__init__()
 
         self.linear = nn.Linear(input_dim, hidden_dim)
+        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
         self.mu = nn.Linear(hidden_dim, latent_dim)
         self.var = nn.Linear(hidden_dim, latent_dim)
 
     def forward(self, x):
         # x is of shape [batch_size, input_dim + n_classes]
 
-        hidden = F.relu(self.linear(x))
+        hidden = F.relu(self.linear2(F.relu(self.linear(x))))
         # hidden is of shape [batch_size, hidden_dim]
 
         # latent parameters
@@ -51,11 +52,12 @@ class VAdecoder(nn.Module):
         super().__init__()
 
         self.latent_to_hidden = nn.Linear(latent_dim, hidden_dim)
+        self.hidden_to_hidden = nn.Linear(hidden_dim, hidden_dim)
         self.hidden_to_out = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
         # x is of shape [batch_size, latent_dim + num_classes]
-        x = F.relu(self.latent_to_hidden(x))
+        x = F.relu(self.hidden_to_hidden(F.relu(self.latent_to_hidden(x))))
         # x is of shape [batch_size, hidden_dim]
         generated_x = F.sigmoid(self.hidden_to_out(x))
         # x is of shape [batch_size, output_dim]
@@ -80,7 +82,7 @@ class VariationalAE(nn.Module):
         self.encoder = VAencoder(input_dim, hidden_dim, latent_dim)
         self.decoder = VAdecoder(latent_dim, hidden_dim, input_dim)
 
-    def forward(self, x):
+    def forward(self, x, device):
 
         # encode
         z_mu, z_logvar = self.encoder(x)
@@ -89,6 +91,8 @@ class VariationalAE(nn.Module):
         # reparameterize
         std = torch.exp(z_logvar / 2)
         eps = torch.randn_like(std)
+        std = std.to(device)
+        eps = eps.to(device)
         x_sample = z_mu + std * eps
         z = x_sample
 
@@ -96,6 +100,9 @@ class VariationalAE(nn.Module):
         generated_x = self.decoder(z)
 
         return generated_x, z_mu, z_logvar, z
+
+    def save_weights(self, path):
+        torch.save(self.state_dict(), path)
 
 
 class ConvVAE(nn.Module):
@@ -185,15 +192,15 @@ class ConvLargeVAE(nn.Module):
         self.encoder = nn.Sequential(
             nn.Conv2d(image_channels, 16, kernel_size=3, padding=1,
                       stride=1),  # b, 16, 28, 28
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.MaxPool2d(2, stride=2),  # b, 16, 14, 14,
             nn.Conv2d(16, 32, kernel_size=3, padding=1,
                       stride=1),  # b, 32, 14, 14
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.MaxPool2d(2, stride=2),  # b, 32, 7, 7
             nn.Conv2d(32, 64, kernel_size=3, padding=1,
                       stride=1),  # b, 64, 7, 7
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.ZeroPad2d((1, 0, 1, 0)),
             nn.MaxPool2d(2, stride=2),  # b, 64, 4, 4
             Flatten())
@@ -206,15 +213,15 @@ class ConvLargeVAE(nn.Module):
             UnFlatten(nb_filters=64, size=4),
             nn.Conv2d(64, 64, kernel_size=3, stride=1,
                       padding=1),  # b, 64, 4, 4
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.UpsamplingNearest2d(scale_factor=2),  # b, 64, 8, 8
             nn.Conv2d(64, 32, kernel_size=3, stride=1,
                       padding=1),  # b, 64, 8, 8
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.UpsamplingNearest2d(scale_factor=2),  # b, 32, 16, 16
             nn.Conv2d(32, 16, kernel_size=3, stride=1,
                       padding=0),  # b, 16, 14, 14
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.UpsamplingNearest2d(scale_factor=2),  # b, 16, 28, 28
             nn.Conv2d(16, 1, kernel_size=3, stride=1,
                       padding=1),  # b, 1, 28, 28
@@ -244,7 +251,7 @@ class ConvLargeVAE(nn.Module):
         z = self.decoder(z)
         return z
 
-    def forward(self, x, device):
+    def forward(self, x, device="cpu"):
         z, mu, logvar = self.encode(x, device)
         generated_x = self.decode(z)
         return generated_x, mu, logvar, z

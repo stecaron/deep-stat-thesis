@@ -22,3 +22,13 @@ __pycache__/
 *.lof
 *.out
 *.lot
+
+# ignore all results folders
+results/**/ae
+results/**/da_vae*
+results/**/vae_isof
+results/**/kpca*
+results/**/.ipynb*
+.ipynb_checkpoints
+
+models/
