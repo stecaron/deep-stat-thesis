@@ -7,7 +7,7 @@ Nous avons testé notre approche de détection d'anomalies sur différents jeux 
 
 Dans la première expérimentation, notre jeu de données a été créé à partir d'images réelles provenant de différentes sources de données, dont principalement \textit{ImageNet} \citep{deng2009imagenet}. Pour simplifier la terminologie, nous allons utiliser le terme \textit{ImageNet} pour caractériser le jeu de données de cette expérience. Dans la deuxième expérimentation, notre jeu de données a été créé à partir d'images tirées de \textit{MNIST} \citep{lecun2010mnist}. Dans les deux cas, les anomalies sont définies à partir des classes du jeu de données. Nous utiliserons les classes seulement dans le but de valider notre approche, et non dans l'entraînement des méthodes.
 
-Dans le cas du premier jeu de données, nous avons défini la classe dite "normale" à partir des images de \textit{Stanford Cars} \citep{KrauseStarkDengFei-Fei_3DRR2013}, soit des images de voitures. Les anomalies sont des images tirées aléatoirement des jeux de données \textit{Stanford Dogs} \citep{KhoslaYaoJayadevaprakashFeiFei_FGVC2011} et \textit{Indoor scene recognition} \citep{5206537}, des images de chiens et de pièces de bâtiment, respectivement. Ces images sont toutes tirées à la base de \textit{ImageNet}. La figure \ref{fig:imagenet} présente quelques exemples d'images provenant des deux classes. Les images sont de type \textit{RGB} et ont toutes été re-dimensionnées en images de 128 pixels par 128 pixels. Le tableau \ref{tab:dataset1} montre le nombre d'instances utilisées dans les jeux de données d'entraînement $\mathcal{X}$ et de test $\mathcal{X^*}$. On peut également y voir la proportion d'anomalies dans chaque ensemble selon trois scénario différents. Le scénario de contamination appelé "Moins", signifie qu'il y a moins d'anomalies dans l'ensemble de test que dans l'ensemble d'entraînement. Le scénario appelé "Égal" veut dire qu'il y a la même proportion d'anomalies dans les deux ensembles. Finalement, le scénario appelé "Plus" est celui où il y a plus d'anomalies dans l'ensemble de test que dans l'ensemble d'entraînement.
+Dans le cas du premier jeu de données, nous avons défini la classe dite "normale" à partir des images de \textit{Stanford Cars} \citep{KrauseStarkDengFei-Fei_3DRR2013}, soit des images de voitures. Les anomalies sont des images tirées aléatoirement des jeux de données \textit{Stanford Dogs} \citep{KhoslaYaoJayadevaprakashFeiFei_FGVC2011} et \textit{Indoor scene recognition} \citep{5206537}, des images de chiens et de pièces de bâtiment, respectivement. Ces images sont toutes tirées à la base de \textit{ImageNet}. La figure \ref{fig:imagenet} présente quelques exemples d'images provenant des deux classes. Les images sont de type \textit{RGB} et ont toutes été re-dimensionnées en images de 128 pixels par 128 pixels. Le tableau \ref{tab:dataset1} montre le nombre d'instances utilisées dans les jeux de données d'entraînement $\mathcal{X}$ et de test $\mathcal{X^*}$. On peut également y voir la proportion d'anomalies dans chaque ensemble selon trois scénarios différents. Le scénario de contamination appelé "Moins", signifie qu'il y a moins d'anomalies dans l'ensemble de test que dans l'ensemble d'entraînement. Le scénario appelé "Égal" veut dire qu'il y a la même proportion d'anomalies dans les deux ensembles. Finalement, le scénario appelé "Plus" est celui où il y a plus d'anomalies dans l'ensemble de test que dans l'ensemble d'entraînement.
 
 \begin{figure}[htb]
 	\centering
@@ -19,7 +19,7 @@ Dans le cas du premier jeu de données, nous avons défini la classe dite "norma
 		\centering\includegraphics[width=6cm]{images/imagenet-outliers}
 		\caption{Classe "anormale"}
 	\end{subfigure}
-	\caption{Exemples d'images pour notre jeu de données d'images réelles tirées de \textit{ImageNet}. La figure à gauche (a) correspond à des exemples de la classe dite "normale" et le volet de droite (b) correspond à des exemples de la classe d'anomalies.}
+	\caption[Exemples d'images pour notre jeu de données d'images réelles tirées de \textit{ImageNet}.]{Exemples d'images pour notre jeu de données d'images réelles tirées de \textit{ImageNet}. La figure à gauche (a) correspond à des exemples de la classe dite "normale" et le volet de droite (b) correspond à des exemples de la classe d'anomalies.}
 	\label{fig:imagenet}
 \end{figure}
 
@@ -77,7 +77,7 @@ Dans le cas du deuxième jeu de données, la classe "normale" est définie en pr
 		\centering\includegraphics[width=6cm]{images/mnist-outliers}
 		\caption{Classe "anormale"}
 	\end{subfigure}
-	\caption{Exemples d'images pour notre jeu de données \textit{MNIST}. La figure à gauche (a) correspond à des exemples de la classe "normale" et le volet de droite (b) correspond à des exemples de la classe d'anomalies. Il s'agit plus particulièrement du scénario de test 3.}
+	\caption[Exemples d'images pour notre jeu de données \textit{MNIST}.]{Exemples d'images pour notre jeu de données \textit{MNIST}. La figure à gauche (a) correspond à des exemples de la classe "normale" et le volet de droite (b) correspond à des exemples de la classe d'anomalies. Il s'agit plus particulièrement du scénario de test 3.}
 	\label{fig:mnist}
 \end{figure}
 
@@ -111,7 +111,7 @@ Dans un premier temps, nous avons testé notre approche de détection d'anomalie
 
 \subsection{Détails sur la méthode DA-VAE} \label{DA_VAE}
 
-La section \ref{section:description} décrit en détails le fonctionnement de l'approche que nous proposons. Par contre, certains détails concernant l'entraînement de l'autoencodeur variationnel ont été omis jusqu'à maintenant. Tout d'abord, il faut mentionner que l'architecture du réseau de neurones est différente pour chacun des deux jeux de données décrits à la section \ref{exp:datasets}.
+La section \ref{section:description} décrit en détail le fonctionnement de l'approche que nous proposons. Par contre, certains détails concernant l'entraînement de l'autoencodeur variationnel ont été omis jusqu'à maintenant. Tout d'abord, il faut mentionner que l'architecture du réseau de neurones est différente pour chacun des deux jeux de données décrits à la section \ref{exp:datasets}.
 
 Dans le cas du jeu de données provenant de \textit{ImageNet}, nous avons défini quatre couches de convolution pour l'encodeur et quatre couches de convolution transposée, ou de déconvolution, pour le décodeur. Chaque couche de convolution est suivie d'une normalisation par mini-lot (\textit{batch normalization}) et d'une fonction d'activation de type \textit{ReLU}. Juste avant de définir les couches de vecteurs latents $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$, le résultat de la dernière couche de convolution de l'encodeur, de dimensions $(512 \times 16 \times 16)$, est aplati en un vecteur de longueur 131 072. Les couches de vecteurs latents $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ sont ensuite obtenues via une couche linéaire. La couche latente possède 25 dimensions. Nous avons entraîné le réseau sur 25 itérations complètes des données tout en ayant 130 observations par mini-lot. Ces mini-lots sont des 
 sous-ensembles du jeu de données d'entraînement utilisés pour calculer les pertes sur lesquelles on calcule les dérivés permettant de mettre à jour les paramètres de l’autoencodeur à chaque itération d’entraînement. Ces sous-ensembles sont définis aléatoirement. L'algorithme d'optimisation est celui de \textit{Adam} \citep{kingma2014method} et le taux d'apprentissage est de 0.001. Finalement, le niveau de filtration $\alpha$ appliqué sur le jeu de données de test est le même que la proportion de contamination dans le jeu de données de test. La figure \ref{fig:archit_imagenet} présente en détails les différentes couches de l'encodeur et du décodeur.
@@ -179,7 +179,7 @@ sous-ensembles du jeu de données d'entraînement utilisés pour calculer les pe
 		\vspace{0.15cm}
 		\caption{Architecture du décodeur}
 	\end{subfigure}
-	\caption{Architecture du modèle DA-VAE pour le jeu de données \textit{ImageNet}. Les blocs représentent les couches du réseau. Les blocs jaunes représentent les couches où il n'y a pas de paramètres à optimiser. Les blocs verts sont des couches de convolution ou déconvolution et les blocs gris sont des couches linéaires. }
+	\caption[Architecture du modèle DA-VAE pour le jeu de données \textit{ImageNet}.]{Architecture du modèle DA-VAE pour le jeu de données \textit{ImageNet}. Les blocs représentent les couches du réseau. Les blocs jaunes représentent les couches où il n'y a pas de paramètres à optimiser. Les blocs verts sont des couches de convolution ou déconvolution et les blocs gris sont des couches linéaires. }
 	\label{fig:archit_imagenet}
 \end{figure}
 
@@ -248,7 +248,7 @@ Pour le jeu de données provenant de \textit{MNIST}, nous avons défini trois co
 		\vspace{0.15cm}
 		\caption{Architecture du décodeur}
 	\end{subfigure}
-	\caption{Architecture du modèle DA-VAE pour le jeu de données provenant de \textit{MNIST}. Les blocs représentent les couches du réseau. Les blocs jaunes représentent les couches où il n'y a pas de paramètres à optimiser. Les blocs verts sont des couches de convolution ou déconvolution et les blocs gris sont des couches linéaires.}
+	\caption[Architecture du modèle DA-VAE pour le jeu de données provenant de \textit{MNIST}.]{Architecture du modèle DA-VAE pour le jeu de données provenant de \textit{MNIST}. Les blocs représentent les couches du réseau. Les blocs jaunes représentent les couches où il n'y a pas de paramètres à optimiser. Les blocs verts sont des couches de convolution ou déconvolution et les blocs gris sont des couches linéaires.}
 	\label{fig:archit_mnist}
 \end{figure}
 
@@ -287,16 +287,16 @@ Une première approche testée pour comparer nos résultats consiste à effectue
 
 nous permettent d'obtenir une projection de cette matrice dans un espace à plus petites dimensions. La matrice de vecteurs propres $\mathbf{V}$ est de dimensions $p \times k$, où $p$ correspond au nombre de variables de la matrice $\mathbf{X}$ et $k$ correspond au nombre de composantes principales conservées dans l'espace réduit. La représentation en dimension réduite, soit $\mathbf{Z}$, est obtenue par le produit de $\mathbf{X}\mathbf{\mathbf{V}}$. Finalement, la reconstruction dans l'espace original, $\hat{\mathbf{X}}$, est donnée par $\hat{\mathbf{X}} = \mathbf{Z}\mathbf{V}^{T} = \mathbf{X} \mathbf{V}^{T} \mathbf{V}$.
 
-Étant donné que nos données sont des images, ou des matrices en plusieurs dimensions, nous avons aplati chacune des entrées pour obtenir des vecteurs. Dans le cas des images en couleur provenant d' \textit{ImageNet}, nous avons d'abord aplati chacun des canaux RGB. Ensuite, nous avons fait une analyse en composantes principales sur chaque canal RGB séparément. Chaque canal image est de dimensions $1 \times 128 \times 128$, ce qui veut dire que nous obtenons trois vecteurs de longueur 16 384. Pour les images provenant de \textit{MNIST}, les images sont de dimensions $1 \times 28 \times 28$, ce qui nous donne des vecteurs de longueur 784.
+Étant donné que nos données sont des images, ou des matrices en plusieurs dimensions, nous avons aplati chacune des entrées pour obtenir des vecteurs. Dans le cas des images en couleur provenant d'\textit{ImageNet}, nous avons d'abord aplati chacun des canaux RGB. Ensuite, nous avons fait une analyse en composantes principales sur chaque canal RGB séparément. Chaque canal image est de dimensions $1 \times 128 \times 128$, ce qui veut dire que nous obtenons trois vecteurs de longueur 16 384. Pour les images provenant de \textit{MNIST}, les images sont de dimensions $1 \times 28 \times 28$, ce qui nous donne des vecteurs de longueur 784.
 
 Pour trouver les anomalies, nous avons utilisé l'erreur de reconstruction entre les données originales $(x^{*(j)})_{j=1}^k$ et
 leur reconstruction $(\hat{x}^{*(j)})_{j=1}^k$ basée uniquement sur un certain nombre de composantes principales. Dans nos expériences, ce nombre de composantes principales a été établi afin d'obtenir une projection conservant approximativement 80\% de la variance originale des données. Nous avons utilisé l'erreur quadratique moyenne comme erreur de reconstruction. Une observation $x^{*(j)}$ est considérée comme une anomalie au niveau de filtration $\alpha$ (une $\alpha$-anomalie) si
 
 \begin{gather} \label{eq:anomalie_mse}
-l(x^{*(j)}, \hat{x}^{*(j)}) > t_{1-\alpha}(L(\mathcal{X}, \hat{\mathcal{X}})),
+l(x^{*(j)}, \hat{x}^{*(j)}) > t_{1-\alpha}\{L(\mathcal{X}, \hat{\mathcal{X}})\},
 \end{gather}
 
-où $l(x^{*(j)}, \hat{x}^{*(j)})$ correspond à l'erreur de reconstruction pour l'observation $i$ du jeu de données test $\mathcal{X^*}$ et $t_{1-\alpha}(L(\mathcal{X}, \hat{\mathcal{X}}))$ correspond au percentile $1-\alpha$ de l'ensemble des erreurs de reconstruction sur le jeu de données d'entraînement $\mathcal{X}$. Dans le cas de l'ACP appliquée sur \textit{ImageNet}, nous avons calculé l'erreur de reconstruction sur chaque canal indépendamment pour ensuite prendre la moyenne des trois erreurs de reconstruction. Le niveau de filtration $\alpha$ choisi est le même que la proportion de contamination dans l'ensemble de données de test, puisqu'il s'agit effectivement de la proportion des observations à "filtrer". Nous avons choisi cela afin de mettre toutes les méthodes comparatives sur le même pied d'égalité. Nous avons donc fixé cette même valeur de $\alpha$ pour les deux autres méthodes comparatives. De plus, nous avons choisi $\alpha$ égal à la vraie proportion de contamination du jeu de données test afin de comparer les méthodes dans une situation plus simple.
+où $l(x^{*(j)}, \hat{x}^{*(j)})$ correspond à l'erreur de reconstruction pour l'observation $i$ du jeu de données test $\mathcal{X^*}$ et $t_{1-\alpha}\{L(\mathcal{X}, \hat{\mathcal{X}})\}$ correspond au percentile $1-\alpha$ de l'ensemble des erreurs de reconstruction sur le jeu de données d'entraînement $\mathcal{X}$. Dans le cas de l'ACP appliquée sur \textit{ImageNet}, nous avons calculé l'erreur de reconstruction sur chaque canal indépendamment pour ensuite prendre la moyenne des trois erreurs de reconstruction. Le niveau de filtration $\alpha$ choisi est le même que la proportion de contamination dans l'ensemble de données de test, puisqu'il s'agit effectivement de la proportion des observations à "filtrer". Nous avons choisi cela afin de mettre toutes les méthodes comparatives sur le même pied d'égalité. Nous avons donc fixé cette même valeur de $\alpha$ pour les deux autres méthodes comparatives. De plus, nous avons choisi $\alpha$ égal à la vraie proportion de contamination du jeu de données test afin de comparer les méthodes dans une situation plus simple.
 
 Pour le jeu de données \textit{ImageNet}, nous avons conservé le nombre de composantes principales nous permettant de conserver exactement 80 \% de la variabilité pour chaque canal RGB. Ce nombre de composantes principales peut donc varier légèrement selon le canal et l'échantillonnage du jeu de données et prend des valeurs entre 90 et 110. Pour le jeu de données \textit{MINST}, nous avons toujours conservé les 30 premières composantes principales, ce qui nous permet de conserver approximativement  80 \% de la variabilité. 
 
@@ -310,7 +310,7 @@ Nous avons utilisé l'erreur quadratique moyenne comme erreur de reconstruction.
 
 Finalement, nous avons testé une dernière approche qui consiste à utiliser différemment les représentations latentes du réseau entraîné avec l'approche DA-VAE. Au lieu de calculer une distance de Kullback-Leibler entre chaque représentation latente et une distribution normale $N(0,I)$, nous utiliserons ici les représentations latentes pour entraîner l'algorithme \textit{Isolation Forest}. Cet algorithme non-supervisé, principalement utilisé en détection d'anomalies, utilise plusieurs arbres de décisions binaires regroupés dans ce qu'on appelle une forêt d'arbres. Chacun des arbres est entraîné sur un certain nombre d'observations tirées au hasard et avec remise. De plus, il est également possible de tirer au hasard un certains nombre de variables pour entraîner chacun des arbres. Ce processus est très similaire à ce qui est fait en apprentissage supervisé avec les forêts aléatoires \citep{Statistics01randomforests}. L'hypothèse de base de cet algorithme quant aux anomalies est fondée autour du fait qu'elles sont peu nombreuses et possèdent des caractéristiques différentes des observations "normales". Sachant cette hypothèse, ces anomalies sont susceptibles d'être isolées dans les premières séparations des arbres de décisions. Pour déterminer si une observation est isolée, on calcule le nombre de nœuds à parcourir dans l'arbre pour atteindre cette observation. Plus ce chemin est petit, plus l'observation risque d'être une anomalie.
 
-Afin d'obtenir un score d'anomalie comparable à notre niveau de filtration $\alpha$, nous avons légèrement transformé le score d'anomalie calculé par l'algorithme. Pour une observation donnée, le score d'anomalie $S$  calculé par l'algorithme est obtenu en prenant la moyenne du nombre de nœuds parcouru dans chacun des arbres de la forêt pour atteindre cette observation. Plus ce score est petit, plus l'observation est susceptible d'être isolée et d'être considérée "anormale". Pour être en mesure de comparer ce score avec notre niveau de filtration, nous avons d'abord calculé ce score pour chacune des $n$ observations de notre jeu de données d'entraînement, ce que nous appelons l'ensemble $S_{\mathcal{X}} = \{S^{(1)}, ..., S^{(n)}\}$. Nous définissons également $S^{'}_{\mathcal{X}}$ comme l'ensemble $S_{\mathcal{X}}$ ordonné en ordre croissant.  Ensuite, nous avons défini notre propre score d'anomalie $S^*(\cdot)$ pour une observation du jeu de donnée de test $x^{*(j)}$ comme suit,
+Afin d'obtenir un score d'anomalie comparable à notre niveau de filtration $\alpha$, nous avons légèrement transformé le score d'anomalie calculé par l'algorithme. Pour une observation donnée, le score d'anomalie $S$  calculé par l'algorithme est obtenu en prenant la moyenne du nombre de nœuds parcourus dans chacun des arbres de la forêt pour atteindre cette observation. Plus ce score est petit, plus l'observation est susceptible d'être isolée et d'être considérée "anormale". Pour être en mesure de comparer ce score avec notre niveau de filtration, nous avons d'abord calculé ce score pour chacune des $n$ observations de notre jeu de données d'entraînement, ce que nous appelons l'ensemble $S_{\mathcal{X}} = \{S^{(1)}, ..., S^{(n)}\}$. Nous définissons également $S^{'}_{\mathcal{X}}$ comme l'ensemble $S_{\mathcal{X}}$ ordonné en ordre croissant.  Ensuite, nous avons défini notre propre score d'anomalie $S^*(\cdot)$ pour une observation du jeu de donnée de test $x^{*(j)}$ comme suit,
 
 \begin{gather*}
 	S^*(x^{*(j)}) = \frac{rang_{S^{'}_{\mathcal{X}}}(S^{(j)})}{n},
@@ -330,7 +330,7 @@ Pour comparer les différentes méthodes, nous avons utilisé trois métriques d
 	\item la composante stochastique dans la représentation latente du VAE.
 \end{enumerate}
 
-La première composante, soit l'échantillonnage des jeux de données, affecte les quatre différents algorithmes. La deuxième composante, soit l'initialisation des paramètres et l'optimisation par descente du gradient, n'affecte que les méthodes reliées à des réseaux de neurones: DA-VAE(\ref{DA_VAE}), AE (\ref{AE}) et ISOF-VAE (\ref{isof_vae}). La composante stochastique dans l'optimisation par descente du gradient est reliée au fait que le jeu de données d'entraînement est divisé en sous-ensembles, aussi appelés mini-lots, qui sont définis aléatoirement. L'optimisation globale du réseau de neurones peut donc emprunter des chemins légèrement différents avec une même initialisation. Finalement, la troisième composante concerne seulement les deux méthodes utilisant l'autoencodeur variationnel: DA-VAE et ISOF-VAE. Comme il a été expliqué à la section \ref{background-vae}, la représentation latente de l'autoencodeur variationnel est obtenue en combinant les paramètres des couches $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du modèle ainsi que la simulation d'une loi $N(0,I)$. Nous ne faisons qu'une présentation brute des résultats dans cette sous-section et nous en faisons l'analyse et la discussion à la sous-section \ref{discussion}.
+La première composante, soit l'échantillonnage des jeux de données, affecte les quatre différents algorithmes. La deuxième composante, soit l'initialisation des paramètres et l'optimisation par descente du gradient, n'affecte que les méthodes reliées à des réseaux de neurones: DA-VAE(\ref{DA_VAE}), AE (\ref{AE}) et ISOF-VAE (\ref{isof_vae}). La composante stochastique dans l'optimisation par descente du gradient est reliée au fait que le jeu de données d'entraînement est divisé en sous-ensembles, aussi appelés mini-lots, qui sont définis aléatoirement. L'optimisation globale du réseau de neurones peut donc emprunter des chemins légèrement différents avec une même initialisation. Finalement, la troisième composante concerne seulement les deux méthodes utilisant l'autoencodeur variationnel: DA-VAE et ISOF-VAE. Comme il a été expliqué à la section \ref{background-vae}, la représentation latente de l'autoencodeur variationnel est obtenue en combinant les paramètres des couches $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du modèle ainsi que la simulation d'une loi $N(0,I)$. Nous ne faisons qu'une présentation brute des résultats dans cette sous-section et nous en faisons l'analyse et les discutons à la sous-section \ref{discussion}.
   
 
 \subsection{Résultats sur \textit{ImageNet}} \label{results:imagenet}
@@ -339,7 +339,8 @@ Le tableau \ref{tab:results_cars} synthétise les résultats obtenus sur le jeu 
 
 \begin{table}[h]
 	\centering
-	\caption{Résultats selon les métriques d'aire sous la courbe ROC, de précision et de rappel pour les différentes expérimentations concernant le jeu de données \textit{ImageNet} (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
+	\caption[Résultats des différentes métriques pour les différentes expérimentations concernant le jeu de données \textit{ImageNet}.]{Résultats selon les métriques d'aire sous la courbe ROC, de précision et de rappel pour les différentes expérimentations concernant le jeu de données \textit{ImageNet} (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
+	\scalebox{0.9}{
 	\begin{tabular}{|c|c|c c c c|}
 		\toprule
 		Contamination & Métrique & ACP & AE & ISOF-VAE & DA-VAE \\
@@ -359,7 +360,7 @@ Le tableau \ref{tab:results_cars} synthétise les résultats obtenus sur le jeu 
 		& $\text{Précision}_{\alpha=0.1}$ & 0.111 $\pm$ 0.025 & 0.202 $\pm$ 0.035 & 0.437 $\pm$ 0.044 & $0.449 \pm 0.030$  \\
 		& $\text{Rappel}_{\alpha=0.1}$ & 0.137 $\pm$ 0.036 & 0.231 $\pm$ 0.042 & 0.594 $\pm$ 0.078 & $\mathbf{0.798 \pm 0.058}$  \\
 		\midrule
-	\end{tabular} 
+	\end{tabular} }
 	\label{tab:results_cars}
 \end{table}
 
@@ -377,7 +378,7 @@ Le tableau \ref{tab:results_cars} synthétise les résultats obtenus sur le jeu 
 		\includegraphics[width=12cm]{images/images_boxplots/recall_cars.pdf}
 		\caption{Résultats en rappel}
 	\end{subfigure}
-	\caption{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches et scénarios de contamination pour l'expérience avec les données \textit{ImageNet}. Les trois sous-figures concernent une métrique différente.}
+	\caption[Graphiques en boîtes et moustaches illustrant les résultats sur \textit{ImageNet}.]{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches et scénarios de contamination pour l'expérience avec les données \textit{ImageNet}. Les trois sous-figures concernent une métrique différente.}
 	\label{fig:auc_cars}
 \end{figure}
 
@@ -387,7 +388,7 @@ Le tableau \ref{tab:auc_mnist} synthétise les résultats obtenus sur le jeu de 
 
 \begin{table}[h]
 	\centering
-	\caption{Résultats des aires sous la courbe ROC des différentes approches selon le scénario de contamination et le scénario de test appliqué sur le jeu de données \textit{MNIST} (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
+	\caption[Résultats des aires sous la courbe ROC sur le jeu de données \textit{MNIST}.]{Résultats des aires sous la courbe ROC des différentes approches selon le scénario de contamination et le scénario de test appliqué sur le jeu de données \textit{MNIST} (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
 	\begin{tabular}{|c|c|c c c c|}
 		\toprule
 		Contamination & Scénario & ACP & AE & ISOF-VAE & DA-VAE \\
@@ -423,13 +424,13 @@ Le tableau \ref{tab:auc_mnist} synthétise les résultats obtenus sur le jeu de 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{images/images_boxplots/auc_mnist.pdf}
-	\caption{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches, des scénarios de test et des scénarios de contamination pour l'expérience avec les données \textit{MNIST}. Toutes les figures présentent les résultats en aire sous la courbe ROC.}
+	\caption[Graphiques en boîtes et moustaches illustrant les résultats en aire sous la courbe ROC sur les données \textit{MNIST}.]{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches, des scénarios de test et des scénarios de contamination pour l'expérience avec les données \textit{MNIST}. Toutes les figures présentent les résultats en aire sous la courbe ROC.}
 	\label{fig:auc_mnist}
 \end{figure}
 
 \begin{table}[h]
 	\centering
-	\caption{Résultats des précisions selon la quantité de contamination et le scénario de test sur le jeu de données \textit{MNIST}. La valeur de $\alpha$ dépend du scénario de contamination. Pour le scénario "Moins" $\alpha=0.01$, pour le scénario "Égal" $\alpha=0.05$ et finalement pour le scénario "Plus" $\alpha=0.1$ (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
+	\caption[Résultats des précisions selon la quantité de contamination et le scénario de test sur le jeu de données \textit{MNIST}.]{Résultats des précisions selon la quantité de contamination et le scénario de test sur le jeu de données \textit{MNIST}. La valeur de $\alpha$ dépend du scénario de contamination. Pour le scénario "Moins" $\alpha=0.01$, pour le scénario "Égal" $\alpha=0.05$ et finalement pour le scénario "Plus" $\alpha=0.1$ (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
 	\begin{tabular}{|c|c|c c c c|}
 		\toprule
 		Contamination & Scénario & ACP & AE & ISOF-VAE & DA-VAE  \\
@@ -465,13 +466,13 @@ Le tableau \ref{tab:auc_mnist} synthétise les résultats obtenus sur le jeu de 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{images/images_boxplots/precision_mnist.pdf}
-	\caption{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches, des scénarios de test et des scénarios de contamination pour l'expérience avec les données \textit{MNIST}. Toutes les figures présentent les résultats en précision.}
+	\caption[Graphiques en boîtes et moustaches illustrant les résultats de précision pour les données \textit{MNIST}.]{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches, des scénarios de test et des scénarios de contamination pour l'expérience avec les données \textit{MNIST}. Toutes les figures présentent les résultats en précision.}
 	\label{fig:precision_mnist}
 \end{figure}
 
 \begin{table}[h]
 	\centering
-	\caption{Résultats des rappels selon la quantité de contamination et le scénario de test sur le jeu de données \textit{MNIST}. La valeur de $\alpha$ dépend du scénario de contamination. Pour le scénario "Moins" $\alpha=0.01$, pour le scénario "Égal" $\alpha=0.05$ et finalement pour le scénario "Plus" $\alpha=0.1$ (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
+	\caption[Résultats des rappels selon la quantité de contamination et le scénario de test sur le jeu de données \textit{MNIST}.]{Résultats des rappels selon la quantité de contamination et le scénario de test sur le jeu de données \textit{MNIST}. La valeur de $\alpha$ dépend du scénario de contamination. Pour le scénario "Moins" $\alpha=0.01$, pour le scénario "Égal" $\alpha=0.05$ et finalement pour le scénario "Plus" $\alpha=0.1$ (moyennes sur les 20 réplications $\pm$ un écart-type). Les résultats en gras sont significativement supérieurs aux trois autres.}
 	\begin{tabular}{|c|c|c c c c|}
 		\toprule
 		Contamination & Scénario & ACP & AE & ISOF-VAE & DA-VAE  \\
@@ -507,7 +508,7 @@ Le tableau \ref{tab:auc_mnist} synthétise les résultats obtenus sur le jeu de 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{images/images_boxplots/recall_mnist.pdf}
-	\caption{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches, des scénarios de test et des scénarios de contamination pour l'expérience avec les données \textit{MNIST}. Toutes les figures présentent les résultats en rappel.}
+	\caption[Graphiques en boîtes et moustaches illustrant les résultats de rappel pour les données \textit{MNIST}.]{Graphiques en boîtes et moustaches illustrant les résultats sur les 20 réplications de chacune des approches, des scénarios de test et des scénarios de contamination pour l'expérience avec les données \textit{MNIST}. Toutes les figures présentent les résultats en rappel.}
 	\label{fig:recall_mnist}
 \end{figure}
 
@@ -524,18 +525,19 @@ Notre approche DA-VAE est celle qui est la plus performante selon les métriques
 \begin{figure}[htb]
 	\centering
 	\begin{subfigure}{6cm}
-		\centering\includegraphics[width=6cm]{images/images_davae/pvalues_scenario_cars_moins}
+		\includegraphics[width=6cm]{images/images_davae/pvalues_scenario_cars_moins}
 		\caption{Scénario "Moins"}
 	\end{subfigure}
 	\begin{subfigure}{6cm}
-		\centering\includegraphics[width=6cm]{images/images_davae/pvalues_scenario_cars_egal}
+		\includegraphics[width=6cm]{images/images_davae/pvalues_scenario_cars_egal}
 		\caption{Scénario "Égal"}
 	\end{subfigure}
 	\begin{subfigure}{6cm}
-		\centering\includegraphics[width=6cm]{images/images_davae/pvalues_scenario_cars_plus}
+		\includegraphics[width=6cm]{images/images_davae/pvalues_scenario_cars_plus}
 		\caption{Scénario "Plus"}
 	\end{subfigure}
-	\caption{Graphiques illustrant les scores d'anomalies selon le scénario de contamination pour le modèle DA-VAE appliqué sur le jeu de données \textit{ImageNet}. Les points violets sont des observations que nous connaissons comme "normales" alors que les points jaunes sont des observations que nous connaissons comme "anormales". Dans tous les cas, le niveau de filtration $\alpha$ est défini comme le niveau de contamination dans le jeu de données de test et est indiqué par la droite rouge horizontale. Pour chaque sous-figure, nous présentons une vue complète des observations du jeu de données de test ainsi qu'une vue rapprochée sur les observations situées plus à gauche de l'axe des $x$.} 
+
+	\caption[Graphiques illustrant les scores d'anomalies selon le scénario de contamination pour le modèle DA-VAE appliqué sur le jeu de données \textit{ImageNet}.]{Graphiques illustrant les scores d'anomalies selon le scénario de contamination pour le modèle DA-VAE appliqué sur le jeu de données \textit{ImageNet}. Les points violets sont des observations que nous connaissons comme "normales" alors que les points jaunes sont des observations que nous connaissons comme "anormales". Dans tous les cas, le niveau de filtration $\alpha$ est défini comme le niveau de contamination dans le jeu de données de test et est indiqué par la droite rouge horizontale. Pour chaque sous-figure, nous présentons une vue complète des observations du jeu de données de test ainsi qu'une vue rapprochée sur les observations situées plus à gauche de l'axe des $x$.} 
 	\label{fig:pvalues_scenarios}
 \end{figure}
 
@@ -543,7 +545,7 @@ Dans les trois sous-figures à la figure \ref{fig:pvalues_scenarios}, on peut vo
 
 \subsubsection{Analyses des méthodes basées sur la reconstruction} \label{imagenet:reconsruction}
 
-Dans la sous-section précédente, nous avons mentionné que les approches basées sur la reconstruction, soit ACP et AE, sont beaucoup moins performantes que les deux autres approches. D'ailleurs, on remarque que la méthode ACP obtient des aires sous la courbe ROC sous 0.5 pour tous les scénarios de contamination. En théorie, nous aurions donc pu, pour cette méthode, obtenir de meilleurs résultats en calculant notre score d'anomalie comme l'inverse du score actuel! Actuellement, notre prémisse de base est que les images étant les moins bien reconstruites sont potentiellement des anomalies. À l'inverse, les images les mieux reconstruites sont potentiellement des images "normales". Nous avons fait cette hypothèse puisque les anomalies sont peu fréquentes dans nos jeux de données, ce qui devrait faire en sorte que les paramètres appris par le modèle soient davantage représentés par les images "normales". En analysant les résultats en aire sous la courbe ROC obtenus par l'ACP, nous concluons que c'est plutôt les anomalies qui sont mieux reconstruites que les images "normales". Ceci s'explique peut-être par le fait que l'ACP cherche des représentations qui conservent la plus grande proportion possible de variabilité dans les données, et que les anomalies contribuent habituellement beaucoup à la variabilité. Pour s'en convaincre, nous avons regardé des exemples d'images les mieux reconstruites sur l'ensemble d'entraînement. On peut voir quelques exemples à la figure \ref{fig:acp_reconstructionsa}. Dans le même ordre d'idées, la figure \ref{fig:acp_reconstructionsb} illustre quelques exemples d'images qui sont moins bien reconstruites. 
+Dans la sous-section précédente, nous avons mentionné que les approches basées sur la reconstruction, soit ACP et AE, sont beaucoup moins performantes que les deux autres approches. D'ailleurs, on remarque que la méthode ACP obtient des aires sous la courbe ROC sous 0.5 pour tous les scénarios de contamination. En théorie, nous aurions donc pu, pour cette méthode, obtenir de meilleurs résultats en calculant notre score d'anomalie comme l'inverse du score actuel! Actuellement, notre prémisse de base est que les images étant les moins bien reconstruites sont potentiellement des anomalies. À l'inverse, les images les mieux reconstruites sont potentiellement des images "normales". Nous avons fait cette hypothèse puisque les anomalies sont peu fréquentes dans nos jeux de données, ce qui devrait faire en sorte que les paramètres appris par le modèle soient davantage représentés par les images "normales". En analysant les résultats en aire sous la courbe ROC obtenus par l'ACP, nous concluons que ce sont plutôt les anomalies qui sont mieux reconstruites que les images "normales". Ceci s'explique peut-être par le fait que l'ACP cherche des représentations qui conservent la plus grande proportion possible de variabilité dans les données, et que les anomalies contribuent habituellement beaucoup à la variabilité. Pour s'en convaincre, nous avons regardé des exemples d'images les mieux reconstruites sur l'ensemble d'entraînement. On peut voir quelques exemples à la figure \ref{fig:acp_reconstructionsa}. Dans le même ordre d'idées, la figure \ref{fig:acp_reconstructionsb} illustre quelques exemples d'images qui sont moins bien reconstruites. 
 
 \begin{figure}[H]
 	\centering
@@ -585,7 +587,7 @@ Dans la section \ref{cadre_decisionnel}, nous avons mentionné qu'il fallait ana
 \begin{figure}[htb]
 	\centering
 	\centering\includegraphics[width=\linewidth]{images/random_examples}
-	\caption{Échantillons d'images pré-sélectionnées avec l'inverse de leur score d'anomalie ($1-\gamma$). Le score a été calculé selon le modèle DA-VAE du scénario "Plus" sur le jeu de données \textit{ImageNet}.}
+	\caption[Échantillons d'images pré-sélectionnées avec l'inverse de leur score d'anomalie ($1-\gamma$).]{Échantillons d'images pré-sélectionnées avec l'inverse de leur score d'anomalie ($1-\gamma$). Le score a été calculé selon le modèle DA-VAE du scénario "Plus" sur le jeu de données \textit{ImageNet}.}
 	\label{fig:random_samples}
 \end{figure}
 
@@ -601,14 +603,14 @@ De cette manière, il est possible de conclure que nous nous retrouvons dans le 
 		\centering\includegraphics[width=12cm, height=6cm]{images/latent_stats/plot_sigma}
 		\caption{Distribution des $\boldsymbol{\sigma}$ moyens}
 	\end{subfigure}
-	\caption{Moyenne des $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ des représentations latentes du jeu de données d'entraînement sur le jeu de données \textit{ImageNet}. La densité rouge correspond à la densité des observations "normales" et la densité bleue aux observations "anormales".}
+	\caption[Moyenne des $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ des représentations latentes du jeu de données d'entraînement sur le jeu de données \textit{ImageNet}.]{Moyenne des $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ des représentations latentes du jeu de données d'entraînement sur le jeu de données \textit{ImageNet}. La densité rouge correspond à la densité des observations "normales" et la densité bleue aux observations "anormales".}
 	\label{fig:cars_latent_stats}
 \end{figure}
 
 \begin{figure}[htb]
 	\centering
 	\centering\includegraphics[width=\linewidth]{images/plot_pca_cars}
-	\caption{Graphique des deux premières composantes principales calculées à partir des vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du jeu de données d'entraînement de \textit{ImageNet} appliqué sur le scénario de contamination "Plus". Les points rouges sont des observations "normales" et les points bleus sont des observations "anormales". Le carré noir correspond à la projection en deux dimensions du point $(\boldsymbol{0_{m}}, \boldsymbol{1_{m}})$.}
+	\caption[Graphique des deux premières composantes principales calculées à partir des vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du jeu de données d'entraînement de \textit{ImageNet}.]{Graphique des deux premières composantes principales calculées à partir des vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du jeu de données d'entraînement de \textit{ImageNet} appliqué sur le scénario de contamination "Plus". Les points rouges sont des observations "normales" et les points bleus sont des observations "anormales". Le carré noir correspond à la projection en deux dimensions du point $(\boldsymbol{0_{m}}, \boldsymbol{1_{m}})$.}
 	\label{fig:pca_cars}
 \end{figure}
 
@@ -620,7 +622,7 @@ Dans la section \ref{beta_schedule}, nous avons présenté l'horaire de l'hyperp
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{images/kld_cars.pdf}
-	\caption{Pourcentage du critère de Kullback-Leibler dans la perte totale selon l'itération d'entraînement et le scénario de contamination. Ces résultats sont tirés du scénario de contamination "Plus" pour le jeu de données \textit{ImageNet}.}
+	\caption[Pourcentage du critère de Kullback-Leibler dans la perte totale selon l'itération d'entraînement et le scénario de contamination.]{Pourcentage du critère de Kullback-Leibler dans la perte totale selon l'itération d'entraînement et le scénario de contamination. Ces résultats sont tirés du scénario de contamination "Plus" pour le jeu de données \textit{ImageNet}.}
 	\label{fig:cars_kld_perc}
 \end{figure}
 
@@ -656,7 +658,7 @@ Pour illustrer les résultats du modèle selon différents scénarios de contami
 		\centering\includegraphics[width=6cm]{images/images_davae/pvalues_scenario3_plus}
 		\caption{Scénario "Plus"}
 	\end{subfigure}
-	\caption{Graphiques illustrant les scores d'anomalies selon le scénario de contamination pour le modèle DA-VAE appliqué sur le scénario de test 1 de MNIST. Les points violets sont des observations que nous connaissons comme "normales" alors que les points jaunes sont des observations que nous connaissons comme "anormales". Dans tous les cas, le niveau de filtration $\alpha$ est défini comme le niveau de contamination dans le jeu de données de test et est indiqué par la ligne rouge horizontale. Pour chaque sous-figure, nous présentons une vue complète des observations du jeu de données de test ainsi qu'une vue rapprochée sur les observations situées plus à gauche de l'axe des $x$.}
+	\caption[Graphiques illustrant les scores d'anomalies selon le scénario de contamination pour le modèle DA-VAE appliqué sur le scénario de test 1 de \textit{MNIST}.]{Graphiques illustrant les scores d'anomalies selon le scénario de contamination pour le modèle DA-VAE appliqué sur le scénario de test 1 de MNIST. Les points violets sont des observations que nous connaissons comme "normales" alors que les points jaunes sont des observations que nous connaissons comme "anormales". Dans tous les cas, le niveau de filtration $\alpha$ est défini comme le niveau de contamination dans le jeu de données de test et est indiqué par la ligne rouge horizontale. Pour chaque sous-figure, nous présentons une vue complète des observations du jeu de données de test ainsi qu'une vue rapprochée sur les observations situées plus à gauche de l'axe des $x$.}
 	\label{fig:pvalues_scenarios_mnist}
 \end{figure}
 
@@ -702,11 +704,11 @@ Dans la section \ref{analyse_lat_cars}, nous avons fait l'analyse des représent
 		\centering\includegraphics[width=6cm]{images/images_davae/mnist_large_distance}
 		\caption{Statistiques de distance élevées}
 	\end{subfigure}
-	\caption{Échantillons d'images provenant du jeu de données d'entraînement ayant des statistiques de distance faibles (a) et élevées (b) pour le scénario de test 3 ("Plus") du jeu de données \textit{MNIST}.}
+	\caption[Échantillons d'images provenant du jeu de données d'entraînement ayant des statistiques de distance faibles et élevées.]{Échantillons d'images provenant du jeu de données d'entraînement ayant des statistiques de distance faibles (a) et élevées (b) pour le scénario de test 3 ("Plus") du jeu de données \textit{MNIST}.}
 	\label{fig:latentes_images_mnist}
 \end{figure}
 
-De cette manière, il est possible de conclure que nous nous retrouvons plutôt dans le premier scénario décrit en regardant à la sous-section \ref{liste_scenarios}, soit celui où les représentations latentes des observations "normales" sont plus près de la $N(0,I)$. C'est donc le scénario inverse par rapport aux expérimentations faites sur \textit{ImageNet}. On peut d'ailleurs confirmer cette conclusion en regardant la figure \ref{fig:mnist_latent_stats}, où l'on peut voir que les vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ moyens des observations "normales" sont plus près des paramètres de moyenne et d'écart-type de la $N(0,I)$.
+De cette manière, il est possible de conclure que nous nous retrouvons plutôt dans le premier scénario décrit à la sous-section \ref{liste_scenarios}, soit celui où les représentations latentes des observations "normales" sont plus près de la $N(0,I)$. C'est donc le scénario inverse par rapport aux expérimentations faites sur \textit{ImageNet}. On peut d'ailleurs confirmer cette conclusion en regardant la figure \ref{fig:mnist_latent_stats}, où l'on peut voir que les vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ moyens des observations "normales" sont plus près des paramètres de moyenne et d'écart-type de la $N(0,I)$.
 
 \begin{figure}[H]
 	\centering
@@ -718,14 +720,14 @@ De cette manière, il est possible de conclure que nous nous retrouvons plutôt 
 		\centering\includegraphics[width=12cm, height=6cm]{images/latent_stats/plot_sigma_mnist}
 		\caption{Distribution des $\boldsymbol{\sigma}$ moyens}
 	\end{subfigure}
-	\caption{Moyenne des $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ des représentations latentes du jeu de données d'entraînement sur le jeu de données \textit{MNIST}. La densité rouge correspond à la densité des observations "normales" et la densité bleue aux observations "anormales".}
+	\caption[Moyenne des $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ des représentations latentes du jeu de données d'entraînement sur le jeu de données \textit{MNIST}.]{Moyenne des $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ des représentations latentes du jeu de données d'entraînement sur le jeu de données \textit{MNIST}. La densité rouge correspond à la densité des observations "normales" et la densité bleue aux observations "anormales".}
 	\label{fig:mnist_latent_stats}
 \end{figure}
 
 \begin{figure}[htb]
 	\centering
 	\centering\includegraphics[width=\linewidth]{images/plot_pca_mnist}
-	\caption{Graphique des deux premières composantes principales réalisé sur les vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du jeu de données d'entraînement \textit{MNIST} appliqué sur le scénario de test 3 et le scénario de contamination "Plus". Les points rouges sont des observations "normales" et les points bleus sont des observations "anormales". Le carré noir correspond à la projection en deux dimensions du point $(\boldsymbol{0_{m}}, \boldsymbol{1_{m}})$.}
+	\caption[Graphique des deux premières composantes principales réalisé sur les vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du jeu de données d'entraînement \textit{MNIST}.]{Graphique des deux premières composantes principales réalisé sur les vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ du jeu de données d'entraînement \textit{MNIST} appliqué sur le scénario de test 3 et le scénario de contamination "Plus". Les points rouges sont des observations "normales" et les points bleus sont des observations "anormales". Le carré noir correspond à la projection en deux dimensions du point $(\boldsymbol{0_{m}}, \boldsymbol{1_{m}})$.}
 	\label{fig:pca_mnist}
 \end{figure}
 
@@ -741,7 +743,7 @@ Dans la figure \ref{fig:pca_mnist}, on peut voir le résultat d'une analyse en c
 		\centering\includegraphics[width=6cm, height=6cm]{images/latent_stats/mnist_sigma_2d}
 		\caption{Distribution de $\sigma_1$ et $\sigma_2$}
 	\end{subfigure}
-	\caption{Distribution des vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ pour le modèle DA-VAE entraîné avec un espace latent à deux dimensions sur le scénario de test 3 et le scénario de contamination "Égal" du jeu de données \textit{MNIST}. Les points rouges sont des observations "normales" et les points bleus sont des observations "anormales".}
+	\caption[Distribution des vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ pour le modèle DA-VAE entraîné avec un espace latent à deux dimensions.]{Distribution des vecteurs $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ pour le modèle DA-VAE entraîné avec un espace latent à deux dimensions sur le scénario de test 3 et le scénario de contamination "Égal" du jeu de données \textit{MNIST}. Les points rouges sont des observations "normales" et les points bleus sont des observations "anormales".}
 	\label{fig:mnist_latent_2d}
 \end{figure}
 
@@ -754,7 +756,7 @@ Dans la figure \ref{fig:mnist_kld_perc}, on peut voir la composition de la perte
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{images/kld_mnist_scenario_3.pdf}
-	\caption{Pourcentage du critère de Kullback-Leibler dans la perte totale selon l'itération d'entraînement et le scénario de contamination. Ces résultats sont tirés du scénario de test 3, où le chiffre "1" est considéré comme la classe "normale" et tous les autres sont considérés dans la classe "anormale" pour l'expérience avec les données \text{MNIST}.}
+	\caption[Pourcentage du critère de Kullback-Leibler dans la perte totale selon l'itération d'entraînement et le scénario de contamination]{Pourcentage du critère de Kullback-Leibler dans la perte totale selon l'itération d'entraînement et le scénario de contamination. Ces résultats sont tirés du scénario de test 3, où le chiffre "1" est considéré comme la classe "normale" et tous les autres sont considérés dans la classe "anormale" pour l'expérience avec les données \text{MNIST}.}
 	\label{fig:mnist_kld_perc}
 \end{figure}
 

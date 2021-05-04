@@ -7,13 +7,13 @@ En premier lieu, nous allons commencer par faire une brève revue des différent
 
 Tout d'abord, il est pertinent de commencer par mentionner que toutes les méthodes de détection d'anomalies fonctionnent fondamentalement de la même manière. En effet, ces algorithmes sont en mesure de faire l'apprentissage d'un jeu de données et de stocker cette information dans un modèle d'apprentissage. En sachant ce qui est "normal", il est donc également possible d'utiliser ce modèle pour évaluer ce qui est "anormal" en identifiant ce qui dévie de cette "normalité". Le choix du modèle est crucial, car si celui-ci ne s'ajuste pas bien aux données, il pourrait nous induire en erreur sur "l'anormalité" d'une observation \citep{10.5555/3086742}. 
 
-Pour démontrer l'importance du choix de modèle, prenons un exemple simpliste et fréquemment utilisé en pratique, soit sur la moyenne d'une loi normale à variance connue, souvent appelé le test $Z$. Dans ce test statistique, qui peut être utilisé pour de la détection d'anomalies, l'hypothèse nulle est que les données suivent une loi normale de moyenne et variance connues. Prenons par exemple des observations à une dimension $x_1, ..., x_N$ de moyenne $\mu$ et d'écart-type $\sigma$. La valeur $Z$ pour une observation $x_i$ peut être définie comme
+Pour démontrer l'importance du choix de modèle, prenons un exemple simpliste et fréquemment utilisé en pratique, soit sur la moyenne d'une loi normale à variance connue, souvent appelé le test $Z$. Dans ce test statistique, qui peut être utilisé pour de la détection d'anomalies, l'hypothèse nulle est que les données suivent une loi normale de moyenne et variance connues. Prenons par exemple des observations à une dimension $x_1, ..., x_N$ de moyenne $\mu$ et d'écart-type $\sigma$. La valeur $Z$; pour une observation $x_i$ peut être définie comme
 
 \begin{gather}
 Z_i = \frac{|x_i-\mu|}{\sigma}.
 \end{gather}
 
-Cette valeur $Z$ nous donne en fait le nombre d'écarts-types dont une observation dévie de la moyenne. On peut généralement penser que si une observation dévie beaucoup de la moyenne, cela peut constituer un indicateur important d'anomalie. Dans ce cas-ci, on utilise souvent la règle du pouce $Z_i \ge 3$ comme indicateur d'anomalie. En d'autres mots, une observation est improbable, ou potentiellement "anormale", si elle se situe à plus de 3 écarts-types de la moyenne. Ce modèle de détection d'anomalies s'applique bien dans le cas où nos observations sont indépendantes et proviennent réellement toutes d'une même loi normale. Dans la figure \ref{fig:Ztest_a}, on peut voir 5000 simulations d'une loi normale de moyenne nulle et d'écart-type égal à 2. On peut voir que notre règle du pouce, ou notre modèle, fonctionne relativement bien puisque les valeurs se situant à l'extérieur de l'intervalle $[-6, 6]$ ont toutes une fréquence relative très faible. Cela nous laisse croire que la détection d'anomalies est adéquate. 
+Cette valeur $Z$ nous donne en fait le nombre d'écarts-types dont une observation dévie de la moyenne. On peut généralement penser que si une observation dévie beaucoup de la moyenne, cela peut constituer un indicateur important d'anomalie. Dans ce cas-ci, on utilise souvent la règle du pouce $Z_i \ge 3$ comme indicateur d'anomalie. En d'autres mots, une observation est improbable, ou potentiellement "anormale", si elle se situe à plus de 3 écarts-types de la moyenne. Ce modèle de détection d'anomalies s'applique bien dans le cas où nos observations sont indépendantes et proviennent réellement toutes d'une même loi normale. Dans la figure \ref{fig:Ztest_a}, on peut voir 5000 simulations d'une loi normale de moyenne nulle et d'écart-type égal à 2. On peut voir que notre règle du pouce, ou notre modèle, fonctionne relativement bien puisque les valeurs se situant à l'extérieur de l'intervalle $[-6, 6]$ ont toutes une fréquence relative très faible. Cela nous laisse croire que cette méthode de détection d'anomalies serait adéquate. 
 
 Dans une autre situation où les données ne proviennent pas d'une loi normale, notre règle du pouce, ou notre modèle, peut être moins adéquat. Supposons que nos données proviennent plutôt d'une loi à queue lourde, comme la loi standard Cauchy. En simulant $5000$ observations de cette loi, nous obtenons une moyenne empirique de $-1.6$ et un écart-type empirique de $160.2$. C'est donc dire que l'intervalle défini avec le modèle précédent serait de $[-482.2, 479]$. On peut voir à la figure \ref{fig:Ztest_b} que plusieurs observations ne sont pas considérées comme des anomalies selon ce modèle, alors que leur fréquence relative est pourtant très faible.
 
@@ -52,15 +52,15 @@ Ce type d'approche est basé sur la projection des données dans un espace à pl
 y_i = \beta_0 + \beta_{1} x_{1,i} + \beta_2 x_{2,i} + \epsilon_{i} \qquad \forall i \in {1, ..., n}.
 \end{gather}
 
-Les estimations de ces paramètres, soit $\hat{\beta_0}$, $\hat{\beta_1}$ et $\hat{\beta_2}$, nous permettent d'estimer la variable réponse $\hat{y_i}$: 
+Les estimations de ces paramètres, soit $\hat{\beta_0}$, $\hat{\beta_1}$ et $\hat{\beta_2}$, nous permettent de prédire la variable réponse $\hat{y_i}$: 
 
 \begin{gather}  \label{eq_reghat}
 \hat{y_i} = \hat{\beta_0} + \hat{\beta_{1}} x_{1,i} + \hat{\beta_2} x_{2,i} \qquad \forall i \in {1,...,n},
 \end{gather}
 
-où $n$ représente le nombre d'observations dans le jeu de données. On peut ensuite utiliser l'erreur de prédiction comme indicateur d'anomalie. Cette erreur de prédiction, définie comme $\hat{y_i} - y_i$, est également appelée erreur de reconstruction. La prémisse de base est que si le modèle est en mesure de bien s'ajuster aux données, les observations "normales" devraient être bien reconstruites par le modèle. À l'inverse, les observations "anormales" devraient être mal reconstruites par le modèle.  On peut d'ailleurs se servir encore une fois de l'analyse des cas extrêmes pour reconnaître les erreurs les plus importantes, et par le fait même, les anomalies.
+où $n$ représente le nombre d'observations dans le jeu de données. On peut ensuite utiliser l'erreur de prédiction comme indicateur d'anomalie. Cette erreur de prédiction, définie comme $y_i - \hat{y_i}$, est également appelée erreur de reconstruction. La prémisse de base est que si le modèle est en mesure de bien s'ajuster aux données, les observations "normales" devraient être bien reconstruites par le modèle. À l'inverse, les observations "anormales" devraient être mal reconstruites par le modèle.  On peut d'ailleurs se servir encore une fois de l'analyse des cas extrêmes pour reconnaître les erreurs les plus importantes, et par le fait même, les anomalies.
  
-Un autre exemple classique dans cette catégorie d'approches est l'utilisation d'une analyse en composantes principales (ACP). Dans ce cas-ci, nous n'avons pas de variable réponse $y_i$ sur laquelle calculer une erreur de reconstruction. L'erreur de reconstruction sera donc basée sur la capacité de reconstruire l'entrée $x_i$. Cette technique de réduction de dimensionnalité permet de projeter les données dans un espace où les variables de représentation sont décorrélées et où l'utilisation de ces variables peut être suffisante pour expliquer une bonne partie de la variabilité originale des données. La transformation permettant d'obtenir un espace de représentation à $k$ dimensions est donnée par l'équation \ref{eq_pca1}:
+Un autre exemple classique dans cette catégorie d'approches est l'utilisation d'une analyse en composantes principales (ACP). Dans ce cas-ci, nous n'avons pas de variable réponse $y_i$ sur laquelle calculer une erreur de reconstruction. L'erreur de reconstruction sera donc basée sur la capacité de reconstruire l'entrée $x_i$. Cette technique de réduction de dimensionnalité permet de projeter les données dans un espace où les variables de représentation sont décorrélées et où l'utilisation d'un sous-ensemble de ces variables peut être suffisante pour expliquer une bonne partie de la variabilité originale des données. La transformation permettant d'obtenir un espace de représentation à $k$ dimensions est donnée par l'équation \ref{eq_pca1}:
  
  \begin{gather}  \label{eq_pca1}
  Z = XV.
@@ -72,9 +72,9 @@ Dans l'équation \ref{eq_pca1}, $X$ est une matrice $n \times p$ représentant l
  \hat{X} = ZV^\top.
  \end{gather}
  
-La projection de cet espace plus petit vers l'espace original défini par l'équation \ref{eq_pca2} permet d'obtenir une erreur de reconstruction. Celle-ci est peut être obtenue par une fonction appliquée à la différence entre $\hat{X}$ et $X$. Par exemple, on pourrait prendre la distance quadratique moyenne entre chaque instance de $\hat{X}$ et $X$ et ainsi obtenir $n$ erreurs de reconstruction. Cette erreur de reconstruction peut être utilisée pour trouver les observations qui dévient de la normalité du modèle de la même manière qu'avec une régression linéaire.
+La projection de cet espace plus petit vers l'espace original défini par l'équation \ref{eq_pca2} permet d'obtenir une erreur de reconstruction. Celle-ci peut être obtenue par une fonction appliquée à la différence entre $\hat{X}$ et $X$. Par exemple, on pourrait prendre la distance quadratique moyenne entre chaque instance de $\hat{X}$ et $X$ et ainsi obtenir $n$ erreurs de reconstruction. Cette erreur de reconstruction peut être utilisée pour trouver les observations qui dévient de la normalité du modèle de la même manière qu'avec une régression linéaire.
   
-Ce type d'approche de détection d'anomalies a le potentiel de mieux s'adapter à des données où il n'y a pas de distribution connue. La régression linéaire est un exemple de modèle linéaire, mais on pourrait également utiliser un modèle plus complexe qui permet de capturer des non-linéarités. Par exemple, il est possible d'utiliser des réseaux de neurones pour faire l'apprentissage des données vers un espace à plus basses dimensions. Le désavantage avec de telles approches est qu'on peut perdre la notion d'interprétabilité, ce qui peut être ennuyeux dans certains exemples d'applications où il peut être intéressant de savoir quelles raisons expliquent la présence d'une anomalie dans les données.
+Ce type d'approche de détection d'anomalies a le potentiel de mieux s'adapter à des données où il n'y a pas de distribution connue. La régression linéaire est un exemple de modèle linéaire, mais on pourrait également utiliser un modèle plus complexe qui permet de capturer des non-linéarités. Par exemple, il est possible d'utiliser des réseaux de neurones pour faire l'apprentissage des données vers un espace de dimension inférieure. Le désavantage avec de telles approches est qu'on peut perdre la notion d'interprétabilité, ce qui peut être ennuyeux dans certains exemples d'applications où il peut être intéressant de savoir quelles raisons expliquent la présence d'une anomalie dans les données.
 
 \subsection{Les méthodes basées sur les distances}
 
@@ -91,7 +91,7 @@ Dans le cas des méthodes de densité, on partitionne l'espace des données en $
 
 Maintenant que nous avons couvert les notions de base de différentes approches de détection d'anomalies, nous allons couvrir les concepts de base derrière le fonctionnement des autoencodeurs. Comme mentionné dans la section \ref{soussec:linear}, certaines approches de modélisation plus complexes, comme les autoencodeurs, peuvent être utilisées pour faire l'apprentissage d'un jeu de données. 
 
-Les premiers travaux se rapprochant de l'autoencodeur connu aujourd'hui remontent aux années 1980 \citep{Rumelhart-1986}. Dans ces travaux, le principe était d'apprendre une représentation cachée en utilisant l'entrée $x_i$ elle-même comme variable réponse à prédire. Avec la montée en popularité des réseaux de neurones au début des années 2000, une nouvelle génération d'autoencodeurs ont vu le jour. Ces autoencodeurs avaient désormais plusieurs couches cachées superposées \citep{HintonSalakhutdinov2006b}, permettant ainsi de faire l'apprentissage de données plus complexes comme des images. Un autoencodeur est un réseau de neurones qui a comme objectif d'apprendre une représentation intermédiaire d'une entrée de manière non-supervisée \citep{Goodfellow-et-al-2016}. Pour réaliser cet objectif, l'autoencodeur se décompose en deux composantes: un encodeur et un décodeur. L'encodeur reçoit en entrée $x$ et convertit celle-ci vers une représentation latente $z$. Le décodeur prend en entrée cette représentation latente $z$ et la décode pour ainsi retrouver une sortie qui doit se rapprocher le plus possible de l'entrée initiale $x$. Cette structure de base est illustrée dans la figure \ref{fig:basicAE}. Historiquement, les autoencodeurs étaient vus comme une méthode de réduction de dimensionnalité, mais désormais, ceux-ci ont davantage d'applications liées au fait qu'ils peuvent apprendre des variables latentes riches en informations. On peut citer des applications en vision numérique permettant de retrouver le contenu d'une image \citep{conf/esann/KrizhevskyH11} ou même en traitement de la langue naturelle pour interpréter un discours oral \citep{inproceedings}. \newline
+Les premiers travaux se rapprochant de l'autoencodeur connu aujourd'hui remontent aux années 1980 \citep{Rumelhart-1986}. Dans ces travaux, le principe était d'apprendre une représentation cachée en utilisant l'entrée $x_i$ elle-même comme variable réponse à prédire. Avec la montée en popularité des réseaux de neurones au début des années 2000, une nouvelle génération d'autoencodeurs a vu le jour. Ces autoencodeurs avaient désormais plusieurs couches cachées superposées \citep{HintonSalakhutdinov2006b}, permettant ainsi de faire l'apprentissage de données plus complexes comme des images. Un autoencodeur est un réseau de neurones qui a comme objectif d'apprendre une représentation intermédiaire d'une entrée de manière non-supervisée \citep{Goodfellow-et-al-2016}. Pour réaliser cet objectif, l'autoencodeur se décompose en deux composantes: un encodeur et un décodeur. L'encodeur reçoit en entrée $x$ et convertit celle-ci vers une représentation latente $z$. Le décodeur prend en entrée cette représentation latente $z$ et la décode pour ainsi retrouver une sortie qui doit se rapprocher le plus possible de l'entrée initiale $x$. Cette structure de base est illustrée dans la figure \ref{fig:basicAE}. Historiquement, les autoencodeurs étaient vus comme une méthode de réduction de dimensionnalité, mais désormais, ceux-ci ont davantage d'applications liées au fait qu'ils peuvent apprendre des variables latentes riches en informations. On peut citer des applications en vision numérique permettant de retrouver le contenu d'une image \citep{conf/esann/KrizhevskyH11} ou même en traitement de la langue naturelle pour interpréter un discours oral \citep{inproceedings}. \newline
 
 \begin{figure}[h]
 	\centering
@@ -162,7 +162,7 @@ Les premiers travaux se rapprochant de l'autoencodeur connu aujourd'hui remonten
 	{\footnotesize décodeur: $p_{\phi}(z)$};
 	
 	\end{tikzpicture}
-	\caption{Exemple illustrant la structure de base d'un autoencodeur. Dans le cas ci-dessus, on pourrait interpréter le schéma comme un réseau pleinement connecté où les blocs pourraient représenter les neurones et les liens seraient les poids, ou les paramètres du réseau.}
+	\caption[Exemple illustrant la structure de base d'un autoencodeur.]{Exemple illustrant la structure de base d'un autoencodeur. Dans le cas ci-dessus, on pourrait interpréter le schéma comme un réseau pleinement connecté où les blocs pourraient représenter les neurones et les liens seraient les poids, ou les paramètres du réseau.}
 	\label{fig:basicAE}
 \end{figure}
 
@@ -256,11 +256,11 @@ Pour trouver les valeurs optimales des paramètres $\theta$ et $\phi$ du modèle
 \begin{split}
 L(X,\hat{X}) & = L\big(X, p_\phi\{q_\theta(X)\}\big) \\
 & = \frac{1}{2} \sum_{i=1}^{n} [x^{(i)}-p_\phi\{q_\theta(x^{(i)})\}]^{\text{T}}[x^{(i)}-p_\phi\{q_\theta(x^{(i)})\}] \\
-& = \frac{1}{2} \sum_{i=1}^{n} \sum_{j=1}^{p} \big(x_{j}^{(i)}-p^j_\phi\{q_\theta(x_{j}^{(i)})\}\big)^2,
+& = \frac{1}{2} \sum_{i=1}^{n} \sum_{j=1}^{p=2} \big(x_{j}^{(i)}-p^j_\phi\{q_\theta(x_{j}^{(i)})\}\big)^2,
 \end{split}
 \end{equation*}
 
-où $i$ représente la $i$-ième observation et $j$ représente le $j$-ième élément de l'entrée $X$. Maintenant que nous avons notre fonction de perte, nous pouvons optimiser les paramètres de nos fonctions encodeur et décodeur en utilisant la règle de dérivation en chaîne sur chacune des couches de notre réseau (voir équation \ref{optim}).
+où $i$ représente la $i$-ième observation et $j$ représente le $j$-ième élément de l'entrée $X$. Maintenant que nous avons notre fonction de perte, nous pouvons optimiser les paramètres de nos fonctions encodeur et décodeur en utilisant la règle de dérivation en chaîne sur chacune des couches de notre réseau (voir équation \ref{optim}). Il s'agit d'une manière assez courante pour entraîner un autoencodeur.
 
 Une fois que l'autoencodeur est entraîné, il est possible d'utiliser l'erreur de reconstruction comme score d'anomalie. En effet, une donnée mal reconstruite pourrait être vue comme une donnée aberrante, ou une donnée que le réseau n'a pas eu l'habitude de voir lors de l'entraînement. Dans  \cite{10.5555/3086742}, ce genre de méthode de détection d'anomalies fait partie de la catégorie des algorithmes basés sur les modèles linéaires ou non-linéaires. Dans ce genre d'approche, on fait généralement l'apprentissage du modèle par l'erreur de reconstruction, où l'on cherche à minimiser les erreurs de prédiction. Toutefois, l'erreur de reconstruction n'est pas le seul critère qui peut être utilisé pour entraîner un autoencodeur. Dans la prochaine section, nous allons considérer un type précis d'autoencodeur, soit l'autoencodeur variationnel. Nous verrons également quelle autre composante peut être utilisée comme score d'anomalie.
 
@@ -353,7 +353,7 @@ Les autoencodeurs variationnels (VAE)  \cite{kingma2013autoencoding} ont une app
 	{\footnotesize décodeur: $p_{\phi}(z)$};
 	
 	\end{tikzpicture}
-	\caption{Structure de base d'un autoencodeur variationnel. La représentation latente $\boldsymbol{z}$ est générée en simulant de la loi $q_{\theta}(z|x)$,  une loi normale multivariée avec les paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ calculés par le réseau.}
+	\caption[Structure de base d'un autoencodeur variationnel.]{Structure de base d'un autoencodeur variationnel. La représentation latente $\boldsymbol{z}$ est générée en simulant de la loi $q_{\theta}(z|x)$,  une loi normale multivariée avec les paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ calculés par le réseau.}
 	\label{fig:VAEstructure}
 \end{figure}
 
@@ -364,12 +364,12 @@ L(x, p_\phi\{q_\theta(x)\}) + D_{KL}\big[q_\theta(z|x) || p(z)\big],
 \end{gather}
 
 
-où $D_{KL}$ est une divergence de Kullback-Leibler. Cette mesure statistique permet de quantifier la différence entre deux distributions. Pour deux distributions continues $A$ et $B$, la divergence de Kullback-Leibler est donnée par
+où $D_{KL}$ est une divergence de Kullback-Leibler. Cette mesure statistique permet de quantifier la différence entre deux distributions. Pour deux distributions continues $A$ et $B$, respectivement de densités $a(\cdot)$ et $b(\cdot)$, la divergence de Kullback-Leibler est donnée par
 
 \begin{equation}  \label{eq:kl}
 	\begin{aligned}
 		D_{\text{KL}}(A || B) &= \int_{-\infty}^{\infty} a(x) \text{log} \Big(\frac{a(x)}{b(x)}\Big)  \\
-		 &= \int_{-\infty}^{\infty} a(x) (\text{log}(a(x)) - \text{log}(b(x))).
+		 &= \int_{-\infty}^{\infty} a(x) [\text{log}(a(x)) - \text{log}\{b(x)\}]\text{.}
 	\end{aligned}
 \end{equation}
 
@@ -388,7 +388,7 @@ La trace calculée sur $\boldsymbol{\sigma^2}$ est la somme des variances sur le
 \begin{aligned}
 D_{\text{KL}}(N_{\boldsymbol \mu, \boldsymbol \sigma} || N_{0,I}) &=  \frac{1}{2}\Big\{\sum_k \sigma_{k}^2+ \sum_{k}\mu_{k}^2 - \sum_{k} 1 - \text{log} \prod_{k}\sigma_{k}^2\Big \} \\
 &=\frac{1}{2}\Big\{\sum_k \sigma_{k}^2+ \sum_{k}\mu_{k}^2 - \sum_{k} 1 - \sum_{k} \text{log} (\sigma_{k}^2)\Big \} \\
-&=\frac{1}{2} \sum_{k}\Big\{\sigma_{k}^2 + \mu_{k}^2 - 1 - \text{log}(\sigma^2)\Big\}.
+&=\frac{1}{2} \sum_{k}\Big\{\sigma_{k}^2 + \mu_{k}^2 - 1 - \text{log}(\sigma_{k}^2)\Big\}.
 \end{aligned}
 \end{equation}
 
@@ -396,7 +396,7 @@ Il est aussi possible de réécrire l'équation \ref{eq:kl3} sous cette forme:
 
 \begin{equation}  \label{eq:kl4}
 \begin{aligned}
-D_{\text{KL}}(N_{\boldsymbol \mu, \boldsymbol \sigma} || N_{0,I}) &= \frac{1}{2} \sum_{k}\Big\{\text{exp}(\sigma_{k}^2) + \mu_{k}^2 - 1 - \sigma^2\Big\}.
+D_{\text{KL}}(N_{\boldsymbol \mu, \boldsymbol \sigma} || N_{0,I}) &= \frac{1}{2} \sum_{k}\Big\{\text{exp}(\sigma_{k}^2) + \mu_{k}^2 - 1 - \sigma_{k}^2\Big\}.
 \end{aligned}
 \end{equation}
 
@@ -406,10 +406,10 @@ D_{\text{KL}}(N_{\boldsymbol \mu, \boldsymbol \sigma} || N_{0,I}) &= \frac{1}{2}
 Comme expliquée un peu plus tôt, la représentation latente de ce type d'autoencodeur est simulée d'une loi normale multivariée, donc stochastique. Cela pourrait en théorie rendre complexe la tâche d'optimisation du réseau. En effet, les paramètres du réseau, soit ceux de l'encodeur et du décodeur, sont optimisés par descente du gradient. On calcule donc la perte $L(x)$ et on dérive cette fonction par rapport à chaque paramètre du réseau. Mais qu'en est-il de la loi normale multivariée qui a généré notre représentation latente? Afin de simplifier le calcul des dérivées lors de la rétropropagation, on redéfinit le calcul de la représentation $\boldsymbol{z}$ dans un format plus simple. Cette simplification est communément appelée la  \textit{reparametrization trick}. En effet, il est possible pour certaines distributions, comme la loi normale, de séparer ses paramètres ($\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$)  de sa composante stochastique. Concrètement, on peut définir une simulation normale multivariée comme
 
 \begin{equation} \label{eq:latent_formula}
-\boldsymbol{z} = \boldsymbol{\mu} + \boldsymbol{\sigma} *\boldsymbol{\epsilon},
+\boldsymbol{z} = \boldsymbol{\mu} + diag(\boldsymbol{\sigma}) *\boldsymbol{\epsilon},
 \end{equation}
 
-où $\boldsymbol{\epsilon} \sim N(0,I)$. En bref, cela signifie que la couche $\boldsymbol{z}$, illustrée dans la figure \ref{fig:VAEstructure}, est générée à partir de deux couches de paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ et d'une simulation $N(0,I)$. Cette réécriture permet d'isoler la composante stochastique associée à la loi normale. Lors de la rétropropagation, on peut calculer les dérivées des paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ seulement et ignorer $\boldsymbol{\epsilon}$. 
+où $\boldsymbol{\epsilon} \sim N(0,I)$ et $*$ dénote le produit élément par élément. En bref, cela signifie que la couche $\boldsymbol{z}$, illustrée dans la figure \ref{fig:VAEstructure}, est générée à partir de deux couches de paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ et d'une simulation $N(0,I)$. Cette réécriture permet d'isoler la composante stochastique associée à la loi normale. Lors de la rétropropagation, on peut calculer les dérivées des paramètres $\boldsymbol{\mu}$ et $\boldsymbol{\sigma}$ seulement et ignorer $\boldsymbol{\epsilon}$. 
 
 \subsection{$\beta$-VAE} \label{beta-vae}
 
@@ -421,7 +421,7 @@ Pour trouver ce bon équilibre, on peut ajouter un hyperparamètre à notre fonc
 L(x, p_\phi\{q_\theta(x)\}) +  \beta \times D_{KL}\big[q_\theta(z|x) || p(z)\big].
 \end{gather}
 
-Dans ce cas-ci, on parle plutôt d'un $\beta$-VAE, qui a été introduit par \cite{Higgins2017betaVAELB}. Plus la valeur de cet hyperparamètre $\beta$ est élevée, plus la régularisation est importante et aussi plus les éléments de la représentation latente seront dissociés les uns des autres (ce qu'on appelle une représentation \textit{disentangled} en anglais). Cela est dû à la covariance nulle de la loi normale multivariée utilisée comme fonction \textit{a priori} de $p(z)$, sur laquelle ce critère de perte est basé. Cette propriété de \textit{disentanglement} peut devenir intéressante dans le cas où on souhaite avoir des variables latentes indépendantes qui expliquent différents aspects des données. Un exemple cité dans \cite{Higgins2017betaVAELB} fait référence à un jeu de données synthétiques de visages. Après avoir entraîné un réseau qui permet d'obtenir des variables latentes \textit{disentangled}, les auteurs sont capables de démontrer que chaque variable latente a une fonction précise dans l'image reconstruite: rotation, éclairage, élévation, etc. Ils ont d'ailleurs illustré ces différentes fonctions en faisant varier les valeurs d'une variable latente à la fois. Ces variations permettaient de modifier différents aspects de l'image reconstruite, comme par exemple la rotation de l'image.
+Dans ce cas-ci, on parle plutôt d'un $\beta$-VAE, qui a été introduit par \cite{Higgins2017betaVAELB}. Plus la valeur de cet hyperparamètre $\beta$ est élevée, plus la régularisation est importante et aussi plus les éléments de la représentation latente seront dissociés les uns des autres (ce qu'on appelle une représentation \textit{disentangled} en anglais). Cela est dû à la covariance nulle de la loi normale multivariée utilisée comme fonction \textit{a priori} de $p(z)$, sur laquelle ce critère de perte est basé. Cette propriété de \textit{disentanglement} peut devenir intéressante dans le cas où l'on souhaite avoir des variables latentes indépendantes qui expliquent différents aspects des données. Un exemple cité dans \cite{Higgins2017betaVAELB} fait référence à un jeu de données synthétiques de visages. Après avoir entraîné un réseau qui permet d'obtenir des variables latentes \textit{disentangled}, les auteurs sont capables de démontrer que chaque variable latente a une fonction précise dans l'image reconstruite: rotation, éclairage, élévation, etc. Ils ont d'ailleurs illustré ces différentes fonctions en faisant varier les valeurs d'une variable latente à la fois. Ces variations permettaient de modifier différents aspects de l'image reconstruite, comme par exemple la rotation de l'image.
 
 \subsection{La détection d'anomalies avec un VAE}
 
